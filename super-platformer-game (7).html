@@ -1,0 +1,2745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Router Adventure - TP-LINK vs AURA</title>
+    
+    <!--
+    ============================================================
+    WIFI ROUTER ADVENTURE - TP-LINK vs AURA
+    ============================================================
+    
+    A fun 2D platformer game featuring WiFi routers as characters!
+    Built with HTML5 Canvas, featuring smooth physics, parallax 
+    backgrounds, animated sprites, collectibles, enemies, and a 
+    customizable asset system.
+    
+    CHARACTERS:
+    - Player: Modern TP-LINK router with 3 antennas (green, friendly)
+    - Enemies: Old AURA routers with 1 antenna (brown, angry)
+    
+    CUSTOMIZING ASSETS:
+    - Use the control panel (gear icon) to replace textures, backgrounds, and music
+    - All assets can be replaced with local files from your computer
+    - The game will remember your custom assets during the session
+    
+    GAME CONTROLS:
+    - Arrow Keys / WASD: Move left/right
+    - Space / W / Up Arrow: Jump
+    - Double-tap direction: Dash
+    
+    FEATURES:
+    - Parallax scrolling backgrounds (3 layers)
+    - Smooth physics with gravity and momentum
+    - Animated router characters with cute/angry faces
+    - Collectible coins with particle effects
+    - Enemy AI with patrol behavior
+    - Sound effects and background music
+    - Responsive design
+    ============================================================
+    -->
+    
+    <style>
+        /* ========================================
+           GLOBAL STYLES & RESET
+           ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        /* ========================================
+           GAME CONTAINER
+           The main wrapper that holds the canvas
+           ======================================== */
+        #game-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 
+                0 0 60px rgba(0, 200, 255, 0.3),
+                0 0 100px rgba(255, 100, 200, 0.2),
+                inset 0 0 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* ========================================
+           GAME CANVAS
+           The main rendering surface for the game
+           ======================================== */
+        #game-canvas {
+            display: block;
+            background: #87CEEB;
+        }
+        
+        /* ========================================
+           HUD (HEADS-UP DISPLAY)
+           Shows score, coins, lives, and timer
+           ======================================== */
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 25px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%);
+            border-radius: 30px;
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .hud-icon {
+            font-size: 28px;
+        }
+        
+        /* ========================================
+           CONTROL PANEL (Settings Menu)
+           Allows customization of game assets
+           ======================================== */
+        #control-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 200;
+        }
+        
+        #settings-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.4);
+            color: white;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #settings-btn:hover {
+            background: rgba(255,255,255,0.4);
+            transform: rotate(90deg);
+        }
+        
+        /* ========================================
+           SETTINGS MODAL
+           Pop-up for asset replacement options
+           ======================================== */
+        #settings-modal {
+            display: none;
+            position: absolute;
+            top: 75px;
+            right: 0;
+            background: linear-gradient(135deg, rgba(30,30,50,0.98) 0%, rgba(50,50,80,0.98) 100%);
+            border-radius: 18px;
+            padding: 25px;
+            min-width: 380px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 200;
+        }
+        
+        #settings-modal h3 {
+            color: #fff;
+            margin-bottom: 18px;
+            font-size: 22px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 12px;
+        }
+        
+        /* ========================================
+           ASSET UPLOAD BUTTONS
+           Styled file inputs for custom assets
+           ======================================== */
+        .asset-group {
+            margin-bottom: 15px;
+        }
+        
+        .asset-group label {
+            display: block;
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .asset-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .asset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .asset-btn input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        /* ========================================
+           AUDIO CONTROLS
+           Volume sliders and mute buttons
+           ======================================== */
+        .audio-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .audio-control label {
+            color: #fff;
+            font-size: 14px;
+            min-width: 80px;
+        }
+        
+        .audio-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+        
+        .audio-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        /* ========================================
+           START SCREEN OVERLAY
+           Shown before the game begins
+           ======================================== */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(26,26,46,0.98) 0%, rgba(22,33,62,0.98) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        #start-screen h1 {
+            color: #fff;
+            font-size: 64px;
+            text-shadow: 
+                0 0 20px rgba(0,200,255,0.8),
+                0 0 40px rgba(255,100,200,0.5);
+            margin-bottom: 25px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        #start-screen p {
+            color: #aaa;
+            font-size: 20px;
+            margin-bottom: 40px;
+        }
+        
+        #start-btn {
+            padding: 18px 60px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 35px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 30px rgba(240,147,251,0.4);
+        }
+        
+        #start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(240,147,251,0.6);
+        }
+        
+        /* ========================================
+           GAME OVER SCREEN
+           Shown when player loses all lives
+           ======================================== */
+        #game-over-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 150;
+        }
+        
+        #game-over-screen h2 {
+            color: #f5576c;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(245,87,108,0.8);
+        }
+        
+        #final-score {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        /* Name input styling */
+        #name-input-section {
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        #player-name-input {
+            padding: 12px 20px;
+            font-size: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            outline: none;
+            margin: 10px;
+            min-width: 200px;
+        }
+        
+        #player-name-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        
+        #player-name-input:focus {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.2);
+        }
+        
+        #submit-score-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #submit-score-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+        
+        /* Scoreboard table styling */
+        #scoreboard-section {
+            margin: 15px 0;
+        }
+        
+        #scoreboard-table {
+            border-collapse: collapse;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            min-width: 350px;
+        }
+        
+        #scoreboard-table th,
+        #scoreboard-table td {
+            padding: 10px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        #scoreboard-table th {
+            background: rgba(102,126,234,0.3);
+            color: #fff;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        #scoreboard-table td {
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        #scoreboard-table tr:hover td {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        #scoreboard-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .rank-1 { color: #FFD700 !important; }  /* Gold */
+        .rank-2 { color: #C0C0C0 !important; }  /* Silver */
+        .rank-3 { color: #CD7F32 !important; }  /* Bronze */
+        
+        #restart-btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        #restart-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        /* ========================================
+           CONTROLS INFO
+           Shows keyboard controls at bottom
+           ======================================== */
+        #controls-info {
+            color: rgba(255,255,255,0.5);
+            font-size: 16px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        /* Close button for modal */
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .close-modal:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- ========================================
+         MAIN GAME CONTAINER
+         Holds the canvas and all UI overlays
+         ======================================== -->
+    <div id="game-container">
+        <!-- Main game canvas -->
+        <canvas id="game-canvas" width="1400" height="800"></canvas>
+        
+        <!-- HUD showing game stats -->
+        <div id="hud">
+            <div class="hud-item">
+                <span class="hud-icon">🪙</span>
+                <span id="coin-count">0</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-icon">⭐</span>
+                <span id="score-count">0</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-icon">❤️</span>
+                <span id="lives-count">3</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-icon">⏱️</span>
+                <span id="timer-count">300</span>
+            </div>
+        </div>
+        
+        <!-- Settings button and modal -->
+        <div id="control-panel">
+            <button id="settings-btn">⚙️</button>
+            <div id="settings-modal">
+                <button class="close-modal" id="close-settings">✕</button>
+                <h3>🎨 Customize Game Assets</h3>
+                
+                <!-- Player texture replacement -->
+                <div class="asset-group">
+                    <label>Player Character</label>
+                    <div class="asset-btn">
+                        📁 Replace Player Texture
+                        <input type="file" id="player-texture-input" accept="image/*">
+                    </div>
+                </div>
+                
+                <!-- Background image replacement -->
+                <div class="asset-group">
+                    <label>Background Image</label>
+                    <div class="asset-btn">
+                        🖼️ Replace Background
+                        <input type="file" id="background-input" accept="image/*">
+                    </div>
+                </div>
+                
+                <!-- Platform texture replacement -->
+                <div class="asset-group">
+                    <label>Platform Texture</label>
+                    <div class="asset-btn">
+                        🧱 Replace Platform Texture
+                        <input type="file" id="platform-input" accept="image/*">
+                    </div>
+                </div>
+                
+                <!-- Enemy texture replacement -->
+                <div class="asset-group">
+                    <label>Enemy Texture</label>
+                    <div class="asset-btn">
+                        👾 Replace Enemy Texture
+                        <input type="file" id="enemy-input" accept="image/*">
+                    </div>
+                </div>
+                
+                <!-- Background music replacement -->
+                <div class="asset-group">
+                    <label>Background Music</label>
+                    <div class="asset-btn">
+                        🎵 Replace Music
+                        <input type="file" id="music-input" accept="audio/*">
+                    </div>
+                </div>
+                
+                <!-- Audio controls -->
+                <div class="audio-control">
+                    <label>🔊 Music</label>
+                    <input type="range" id="music-volume" min="0" max="100" value="50">
+                </div>
+                <div class="audio-control">
+                    <label>🔉 SFX</label>
+                    <input type="range" id="sfx-volume" min="0" max="100" value="70">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Start screen overlay -->
+        <div id="start-screen">
+            <h1>📶 WiFi Router Adventure</h1>
+            <p>TP-LINK vs AURA - Collect coins, defeat old routers!</p>
+            <button id="start-btn">START GAME</button>
+            <div id="controls-info">
+                Controls: ← → or A/D to move | SPACE or W to jump | Double-tap to dash
+            </div>
+        </div>
+        
+        <!-- Game over screen -->
+        <div id="game-over-screen">
+            <h2>GAME OVER</h2>
+            <p id="final-score">Final Score: 0</p>
+            
+            <!-- Name input section -->
+            <div id="name-input-section">
+                <p style="color: #aaa; margin-bottom: 10px;">Enter your name for the scoreboard:</p>
+                <input type="text" id="player-name-input" maxlength="15" placeholder="Your name">
+                <button id="submit-score-btn">Submit Score</button>
+            </div>
+            
+            <!-- Scoreboard section -->
+            <div id="scoreboard-section" style="display: none;">
+                <h3 style="color: #fff; margin: 20px 0 15px; font-size: 24px;">🏆 Top Scores</h3>
+                <table id="scoreboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th>Score</th>
+                            <th>Coins</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoreboard-body">
+                    </tbody>
+                </table>
+            </div>
+            
+            <button id="restart-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+    /**
+     * ============================================================
+     * SUPER PLATFORMER ADVENTURE - GAME ENGINE
+     * ============================================================
+     * 
+     * This game engine implements a complete 2D platformer with:
+     * - Entity Component System (ECS) inspired architecture
+     * - Physics simulation with gravity and collision
+     * - Sprite animation system
+     * - Parallax scrolling backgrounds
+     * - Particle effects system
+     * - Audio management with Web Audio API
+     * - Asset management and customization
+     * 
+     * ============================================================
+     */
+
+    'use strict';
+
+    // ========================================
+    // UTILITY: Draw rounded rectangle (cross-browser compatible)
+    // ========================================
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.arcTo(x + width, y, x + width, y + radius, radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+        ctx.lineTo(x + radius, y + height);
+        ctx.arcTo(x, y + height, x, y + height - radius, radius);
+        ctx.lineTo(x, y + radius);
+        ctx.arcTo(x, y, x + radius, y, radius);
+        ctx.closePath();
+    }
+
+    // ========================================
+    // CANVAS AND CONTEXT SETUP
+    // ========================================
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const CANVAS_WIDTH = canvas.width;
+    const CANVAS_HEIGHT = canvas.height;
+
+    // ========================================
+    // GAME CONSTANTS
+    // ========================================
+    const GRAVITY = 0.5;            // Reduced for smoother falling
+    const FRICTION = 0.88;          // Higher = less slippery
+    const AIR_RESISTANCE = 0.96;    // Higher = smoother air control
+    const PLAYER_SPEED = 3.5;       // Reduced for less sensitive movement
+    const JUMP_FORCE = -13;         // Slightly reduced
+    const DASH_MULTIPLIER = 1.5;    // Reduced dash boost
+    const TILE_SIZE = 40;
+
+    // ========================================
+    // GAME STATE
+    // ========================================
+    let gameState = 'start';
+    let score = 0;
+    let coins = 0;
+    let lives = 3;
+    let timeLeft = 300;
+    let cameraX = 0;
+
+    // ========================================
+    // INPUT HANDLING
+    // ========================================
+    const keys = {
+        left: false,
+        right: false,
+        up: false,
+        down: false,
+        jump: false
+    };
+
+    let lastLeftPress = 0;
+    let lastRightPress = 0;
+    const DOUBLE_TAP_TIME = 200;
+
+    // ========================================
+    // FORWARD DECLARATIONS
+    // ========================================
+    let assetManager = null;
+    let audioManager = null;
+    let background = null;
+    let player = null;
+    let platforms = [];
+    let coinsArray = [];
+    let enemies = [];
+    let particles = [];
+    let coins_collected = 0;
+    let levelData = null;
+    let timerInterval = null;
+
+    /**
+     * ========================================
+     * ASSET MANAGER CLASS
+     * ========================================
+     */
+    class AssetManager {
+        constructor() {
+            this.assets = {
+                player: null,
+                background: null,
+                platform: null,
+                enemy: null,
+                coin: null,
+                music: null
+            };
+            
+            this.defaultColors = {
+                player: '#FF6B6B',
+                playerOutline: '#C0392B',
+                platform: '#8B4513',
+                platformTop: '#228B22',
+                enemy: '#9B59B6',
+                enemyOutline: '#6C3483',
+                coin: '#F1C40F',
+                coinOutline: '#D4AC0D'
+            };
+            
+            this.createDefaultAssets();
+        }
+
+        createDefaultAssets() {
+            this.assets.player = this.createPlayerSprite();
+            this.assets.platform = this.createPlatformSprite();
+            this.assets.enemy = this.createEnemySprite();
+            this.assets.coin = this.createCoinSprite();
+        }
+
+        createPlayerSprite() {
+            // ========================================
+            // TP-LINK WiFi Router Character
+            // A modern router with 3 antennas (text drawn separately)
+            // ========================================
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = 50;
+            spriteCanvas.height = 65;
+            const sCtx = spriteCanvas.getContext('2d');
+            
+            // === ANTENNAS (3 of them) ===
+            // Left antenna
+            sCtx.fillStyle = '#1a1a1a';
+            sCtx.fillRect(8, 0, 4, 25);  // Antenna shaft
+            sCtx.fillStyle = '#2d2d2d';
+            sCtx.beginPath();
+            sCtx.arc(10, 0, 4, 0, Math.PI * 2);  // Antenna top
+            sCtx.fill();
+            
+            // Middle antenna (tallest)
+            sCtx.fillStyle = '#1a1a1a';
+            sCtx.fillRect(23, -5, 4, 30);
+            sCtx.fillStyle = '#2d2d2d';
+            sCtx.beginPath();
+            sCtx.arc(25, -5, 4, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Right antenna
+            sCtx.fillStyle = '#1a1a1a';
+            sCtx.fillRect(38, 0, 4, 25);
+            sCtx.fillStyle = '#2d2d2d';
+            sCtx.beginPath();
+            sCtx.arc(40, 0, 4, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // === ROUTER BODY ===
+            // Main body (rounded rectangle)
+            sCtx.fillStyle = '#2ECC71';  // TP-LINK green
+            drawRoundedRect(sCtx, 2, 22, 46, 38, 6);
+            sCtx.fill();
+            
+            // Body outline
+            sCtx.strokeStyle = '#27AE60';
+            sCtx.lineWidth = 2;
+            drawRoundedRect(sCtx, 2, 22, 46, 38, 6);
+            sCtx.stroke();
+            
+            // Top highlight
+            sCtx.fillStyle = 'rgba(255,255,255,0.2)';
+            sCtx.fillRect(6, 24, 38, 3);
+            
+            // === TP-LINK BRANDING (text placeholder area) ===
+            // Draw a subtle rectangle where text will go
+            sCtx.fillStyle = 'rgba(0,0,0,0.1)';
+            sCtx.fillRect(8, 34, 34, 10);
+            
+            // === LED INDICATORS ===
+            // Power LED (green - on)
+            sCtx.fillStyle = '#00FF00';
+            sCtx.shadowColor = '#00FF00';
+            sCtx.shadowBlur = 5;
+            sCtx.beginPath();
+            sCtx.arc(10, 50, 2, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // WiFi LED (green - blinking)
+            sCtx.fillStyle = '#00FF00';
+            sCtx.beginPath();
+            sCtx.arc(18, 50, 2, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Internet LED (green - on)
+            sCtx.fillStyle = '#00FF00';
+            sCtx.beginPath();
+            sCtx.arc(26, 50, 2, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // LAN LEDs
+            sCtx.fillStyle = '#FFAA00';
+            sCtx.beginPath();
+            sCtx.arc(34, 50, 2, 0, Math.PI * 2);
+            sCtx.fill();
+            sCtx.beginPath();
+            sCtx.arc(40, 50, 2, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            sCtx.shadowBlur = 0;
+            
+            // === CUTE FACE ===
+            // Eyes (cartoon style)
+            sCtx.fillStyle = '#ffffff';
+            sCtx.beginPath();
+            sCtx.ellipse(17, 45, 5, 6, 0, 0, Math.PI * 2);
+            sCtx.ellipse(33, 45, 5, 6, 0, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Pupils (looking forward)
+            sCtx.fillStyle = '#2C3E50';
+            sCtx.beginPath();
+            sCtx.arc(18, 45, 3, 0, Math.PI * 2);
+            sCtx.arc(34, 45, 3, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Eye shine
+            sCtx.fillStyle = '#ffffff';
+            sCtx.beginPath();
+            sCtx.arc(19, 44, 1.5, 0, Math.PI * 2);
+            sCtx.arc(35, 44, 1.5, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Happy smile
+            sCtx.strokeStyle = '#1a1a1a';
+            sCtx.lineWidth = 2;
+            sCtx.beginPath();
+            sCtx.arc(25, 48, 6, 0.2, Math.PI - 0.2);
+            sCtx.stroke();
+            
+            return spriteCanvas;
+        }
+
+        createPlatformSprite() {
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = TILE_SIZE;
+            spriteCanvas.height = TILE_SIZE;
+            const sCtx = spriteCanvas.getContext('2d');
+            
+            // Main brick body
+            sCtx.fillStyle = '#8B4513';
+            sCtx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+            
+            // Brick pattern
+            sCtx.fillStyle = '#A0522D';
+            sCtx.fillRect(2, 2, 16, 16);
+            sCtx.fillRect(22, 2, 16, 16);
+            sCtx.fillRect(12, 22, 16, 16);
+            sCtx.fillRect(2, 22, 8, 16);
+            sCtx.fillRect(30, 22, 8, 16);
+            
+            // Grass top
+            sCtx.fillStyle = '#228B22';
+            sCtx.fillRect(0, 0, TILE_SIZE, 6);
+            
+            // Highlight
+            sCtx.fillStyle = 'rgba(255,255,255,0.2)';
+            sCtx.fillRect(0, 0, TILE_SIZE, 2);
+            
+            return spriteCanvas;
+        }
+
+        createEnemySprite() {
+            // ========================================
+            // AURA WiFi Router Enemy
+            // An old-school router with 1 antenna (text drawn separately)
+            // ========================================
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = 50;
+            spriteCanvas.height = 55;
+            const sCtx = spriteCanvas.getContext('2d');
+            
+            // === SINGLE ANTENNA (old style, thick) ===
+            // Antenna base
+            sCtx.fillStyle = '#4a4a4a';
+            sCtx.fillRect(21, 0, 8, 18);
+            
+            // Antenna shaft
+            sCtx.fillStyle = '#3a3a3a';
+            sCtx.fillRect(23, -8, 4, 18);
+            
+            // Antenna top (rounded)
+            sCtx.fillStyle = '#5a5a5a';
+            sCtx.beginPath();
+            sCtx.arc(25, -8, 4, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // === OLD ROUTER BODY (boxier, less modern) ===
+            // Main body (more rectangular, less rounded)
+            sCtx.fillStyle = '#8B4513';  // Old beige/brown color
+            drawRoundedRect(sCtx, 2, 15, 46, 38, 3);
+            sCtx.fill();
+            
+            // Body outline
+            sCtx.strokeStyle = '#6B3510';
+            sCtx.lineWidth = 2;
+            drawRoundedRect(sCtx, 2, 15, 46, 38, 3);
+            sCtx.stroke();
+            
+            // Top panel (darker)
+            sCtx.fillStyle = '#7a3d20';
+            sCtx.fillRect(4, 17, 42, 8);
+            
+            // === AURA BRANDING (text placeholder area) ===
+            // Draw a subtle rectangle where text will go
+            sCtx.fillStyle = 'rgba(0,0,0,0.15)';
+            sCtx.fillRect(8, 18, 34, 10);
+            
+            // Ventilation slots (below text area)
+            sCtx.fillStyle = '#4a4a4a';
+            for (let i = 0; i < 4; i++) {
+                sCtx.fillRect(6, 30 + i * 4, 38, 2);
+            }
+            
+            // === OLD LED INDICATORS (some flickering/off) ===
+            // Power LED (dim yellow - old)
+            sCtx.fillStyle = '#886600';
+            sCtx.shadowColor = '#886600';
+            sCtx.shadowBlur = 2;
+            sCtx.beginPath();
+            sCtx.arc(10, 46, 2.5, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Status LED (red - error/warning)
+            sCtx.fillStyle = '#FF0000';
+            sCtx.shadowColor = '#FF0000';
+            sCtx.shadowBlur = 3;
+            sCtx.beginPath();
+            sCtx.arc(20, 46, 2.5, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Activity LED (off)
+            sCtx.fillStyle = '#333333';
+            sCtx.shadowBlur = 0;
+            sCtx.beginPath();
+            sCtx.arc(30, 46, 2.5, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Link LED (orange - slow)
+            sCtx.fillStyle = '#FF6600';
+            sCtx.shadowColor = '#FF6600';
+            sCtx.shadowBlur = 2;
+            sCtx.beginPath();
+            sCtx.arc(40, 46, 2.5, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            sCtx.shadowBlur = 0;
+            
+            // === ANGRY FACE ===
+            // Angry eyes (squinted)
+            sCtx.fillStyle = '#ffffff';
+            sCtx.beginPath();
+            sCtx.ellipse(16, 38, 6, 4, 0, 0, Math.PI * 2);
+            sCtx.ellipse(34, 38, 6, 4, 0, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Angry pupils (small, intense)
+            sCtx.fillStyle = '#8B0000';  // Dark red
+            sCtx.beginPath();
+            sCtx.arc(17, 38, 2, 0, Math.PI * 2);
+            sCtx.arc(35, 38, 2, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Angry eyebrows (slanted down toward center)
+            sCtx.strokeStyle = '#2a2a2a';
+            sCtx.lineWidth = 2;
+            sCtx.beginPath();
+            sCtx.moveTo(10, 32);
+            sCtx.lineTo(22, 35);
+            sCtx.stroke();
+            sCtx.beginPath();
+            sCtx.moveTo(40, 32);
+            sCtx.lineTo(28, 35);
+            sCtx.stroke();
+            
+            // Frowning mouth
+            sCtx.strokeStyle = '#2a2a2a';
+            sCtx.lineWidth = 2;
+            sCtx.beginPath();
+            sCtx.arc(25, 46, 5, Math.PI + 0.3, -0.3);
+            sCtx.stroke();
+            
+            // Scratch marks (to show it's old/damaged)
+            sCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+            sCtx.lineWidth = 1;
+            sCtx.beginPath();
+            sCtx.moveTo(8, 26);
+            sCtx.lineTo(12, 28);
+            sCtx.moveTo(38, 25);
+            sCtx.lineTo(42, 27);
+            sCtx.stroke();
+            
+            return spriteCanvas;
+        }
+
+        createCoinSprite() {
+            // ========================================
+            // WiFi Signal Coin
+            // A collectible styled as a WiFi signal icon
+            // ========================================
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = 30;
+            spriteCanvas.height = 30;
+            const sCtx = spriteCanvas.getContext('2d');
+            
+            // Glowing blue background
+            const gradient = sCtx.createRadialGradient(15, 15, 3, 15, 15, 14);
+            gradient.addColorStop(0, '#00D4FF');
+            gradient.addColorStop(0.5, '#0099CC');
+            gradient.addColorStop(1, '#006699');
+            
+            sCtx.fillStyle = gradient;
+            sCtx.beginPath();
+            sCtx.arc(15, 15, 14, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // Outer glow
+            sCtx.shadowColor = '#00D4FF';
+            sCtx.shadowBlur = 5;
+            sCtx.strokeStyle = '#00FFFF';
+            sCtx.lineWidth = 2;
+            sCtx.beginPath();
+            sCtx.arc(15, 15, 12, 0, Math.PI * 2);
+            sCtx.stroke();
+            sCtx.shadowBlur = 0;
+            
+            // WiFi signal arcs
+            sCtx.strokeStyle = '#ffffff';
+            sCtx.lineWidth = 2;
+            sCtx.lineCap = 'round';
+            
+            // Small arc (bottom)
+            sCtx.beginPath();
+            sCtx.arc(15, 20, 4, Math.PI, 0, false);
+            sCtx.stroke();
+            
+            // Medium arc
+            sCtx.beginPath();
+            sCtx.arc(15, 20, 7, Math.PI, 0, false);
+            sCtx.stroke();
+            
+            // Large arc (top)
+            sCtx.beginPath();
+            sCtx.arc(15, 20, 10, Math.PI, 0, false);
+            sCtx.stroke();
+            
+            // WiFi dot (center bottom)
+            sCtx.fillStyle = '#ffffff';
+            sCtx.beginPath();
+            sCtx.arc(15, 20, 2, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            return spriteCanvas;
+        }
+
+        loadImage(file, assetName) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    this.assets[assetName] = img;
+                    console.log('Loaded custom ' + assetName + ' asset');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        loadAudio(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.assets.music = e.target.result;
+                if (audioManager) {
+                    audioManager.loadMusic(e.target.result);
+                }
+                console.log('Loaded custom music asset');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        get(name) {
+            return this.assets[name];
+        }
+    }
+
+    /**
+     * ========================================
+     * AUDIO MANAGER CLASS
+     * ========================================
+     */
+    class AudioManager {
+        constructor() {
+            this.audioContext = null;
+            this.musicGain = null;
+            this.sfxGain = null;
+            this.currentMusic = null;
+            this.musicVolume = 0.5;
+            this.sfxVolume = 0.7;
+            this.initialized = false;
+        }
+
+        init() {
+            if (this.initialized) return;
+            
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                this.musicGain = this.audioContext.createGain();
+                this.sfxGain = this.audioContext.createGain();
+                
+                this.musicGain.connect(this.audioContext.destination);
+                this.sfxGain.connect(this.audioContext.destination);
+                
+                this.musicGain.gain.value = this.musicVolume;
+                this.sfxGain.gain.value = this.sfxVolume;
+                
+                this.initialized = true;
+                console.log('Audio system initialized');
+            } catch (e) {
+                console.warn('Web Audio API not supported:', e);
+            }
+        }
+
+        loadMusic(src) {
+            if (!this.initialized) return;
+            
+            if (this.currentMusic) {
+                this.currentMusic.pause();
+            }
+            
+            this.currentMusic = new Audio(src);
+            this.currentMusic.loop = true;
+            this.currentMusic.volume = this.musicVolume;
+        }
+
+        playMusic() {
+            if (this.currentMusic && gameState === 'playing') {
+                this.currentMusic.play().catch(function(e) { 
+                    console.log('Music playback delayed'); 
+                });
+            }
+        }
+
+        pauseMusic() {
+            if (this.currentMusic) {
+                this.currentMusic.pause();
+            }
+        }
+
+        setMusicVolume(volume) {
+            this.musicVolume = volume;
+            if (this.musicGain) {
+                this.musicGain.gain.value = volume;
+            }
+            if (this.currentMusic) {
+                this.currentMusic.volume = volume;
+            }
+        }
+
+        setSfxVolume(volume) {
+            this.sfxVolume = volume;
+            if (this.sfxGain) {
+                this.sfxGain.gain.value = volume;
+            }
+        }
+
+        playSfx(type) {
+            if (!this.initialized) return;
+            
+            try {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                osc.connect(gain);
+                gain.connect(this.sfxGain);
+                
+                const now = this.audioContext.currentTime;
+                
+                if (type === 'jump') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'coin') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.setValueAtTime(1108, now + 0.05);
+                    osc.frequency.setValueAtTime(1318, now + 0.1);
+                    gain.gain.setValueAtTime(0.2 * this.sfxVolume, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'hurt') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+                    gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'stomp') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+                    gain.gain.setValueAtTime(0.4 * this.sfxVolume, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                }
+            } catch (e) {
+                console.warn('Error playing sound effect:', e);
+            }
+        }
+    }
+
+    /**
+     * ========================================
+     * PARTICLE CLASS
+     * ========================================
+     */
+    class Particle {
+        constructor(x, y, options) {
+            options = options || {};
+            this.x = x;
+            this.y = y;
+            this.vx = options.vx !== undefined ? options.vx : (Math.random() - 0.5) * 4;
+            this.vy = options.vy !== undefined ? options.vy : (Math.random() - 0.5) * 4 - 2;
+            this.size = options.size !== undefined ? options.size : Math.random() * 6 + 2;
+            this.color = options.color || '#FFD700';
+            this.life = options.life !== undefined ? options.life : 1;
+            this.decay = options.decay !== undefined ? options.decay : 0.02;
+            this.gravity = options.gravity !== undefined ? options.gravity : 0.1;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += this.gravity;
+            this.life -= this.decay;
+            this.size *= 0.98;
+        }
+
+        draw(ctx, camX) {
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, this.life);
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x - camX, this.y, Math.max(0.5, this.size), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        isDead() {
+            return this.life <= 0 || this.size < 0.5;
+        }
+    }
+
+    /**
+     * ========================================
+     * PLAYER CLASS
+     * ========================================
+     */
+    class Player {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.width = 46;      // Updated for TP-LINK router sprite
+            this.height = 55;     // Updated for TP-LINK router sprite (excludes antenna)
+            this.vx = 0;
+            this.vy = 0;
+            this.speed = PLAYER_SPEED;
+            this.jumpForce = JUMP_FORCE;
+            this.grounded = false;
+            this.facing = 1;
+            this.dashing = false;
+            this.dashTimer = 0;
+            this.invincible = false;
+            this.invincibleTimer = 0;
+            this.animFrame = 0;
+            this.animTimer = 0;
+            this.state = 'idle';
+            
+            // Track platform for moving platforms
+            this.currentPlatform = null;
+            this.lastPlatformX = 0;
+            this.lastPlatformY = 0;
+        }
+
+        update(plats, enems, coinList, particleList) {
+            // ========================================
+            // STEP 1: Move with platform if standing on one
+            // This happens BEFORE other movement
+            // ========================================
+            if (this.currentPlatform && this.grounded) {
+                // Calculate how much the platform moved
+                const deltaX = this.currentPlatform.x - this.lastPlatformX;
+                const deltaY = this.currentPlatform.y - this.lastPlatformY;
+                
+                // Move player with the platform
+                this.x += deltaX;
+                this.y += deltaY;
+                
+                // Update stored position for next frame
+                this.lastPlatformX = this.currentPlatform.x;
+                this.lastPlatformY = this.currentPlatform.y;
+            }
+            
+            // ========================================
+            // STEP 2: Horizontal movement input
+            // Reduced acceleration for smoother feel
+            // ========================================
+            if (keys.left) {
+                this.vx -= this.speed * 0.15;  // Reduced from 0.2
+                this.facing = -1;
+            }
+            if (keys.right) {
+                this.vx += this.speed * 0.15;  // Reduced from 0.2
+                this.facing = 1;
+            }
+            
+            // Apply friction
+            if (this.grounded) {
+                this.vx *= FRICTION;
+            } else {
+                this.vx *= AIR_RESISTANCE;
+            }
+            
+            // Clamp velocity
+            const maxSpeed = this.dashing ? this.speed * DASH_MULTIPLIER : this.speed;
+            this.vx = Math.max(-maxSpeed, Math.min(maxSpeed, this.vx));
+            
+            // Apply gravity
+            this.vy += GRAVITY;
+            this.vy = Math.min(this.vy, 15);
+            
+            // ========================================
+            // STEP 3: Jumping
+            // ========================================
+            if (keys.jump && this.grounded) {
+                this.vy = this.jumpForce;
+                this.grounded = false;
+                this.currentPlatform = null;  // Detach from platform when jumping
+                if (audioManager) audioManager.playSfx('jump');
+                
+                // Dust particles
+                for (let i = 0; i < 5; i++) {
+                    particleList.push(new Particle(
+                        this.x + this.width / 2,
+                        this.y + this.height,
+                        { 
+                            vx: (Math.random() - 0.5) * 3,
+                            vy: Math.random() * -2,
+                            color: '#A0522D',
+                            size: Math.random() * 4 + 2,
+                            gravity: 0.05
+                        }
+                    ));
+                }
+            }
+            
+            // ========================================
+            // STEP 4: Move horizontally and check collisions
+            // ========================================
+            this.x += this.vx;
+            
+            for (let i = 0; i < plats.length; i++) {
+                const plat = plats[i];
+                if (this.collidesWith(plat)) {
+                    if (this.vx > 0) {
+                        this.x = plat.x - this.width;
+                    } else if (this.vx < 0) {
+                        this.x = plat.x + plat.width;
+                    }
+                    this.vx = 0;
+                }
+            }
+            
+            // ========================================
+            // STEP 5: Move vertically and check collisions
+            // ========================================
+            this.y += this.vy;
+            this.grounded = false;
+            this.currentPlatform = null;  // Reset, will be set if landing on platform
+            
+            for (let i = 0; i < plats.length; i++) {
+                const plat = plats[i];
+                if (this.collidesWith(plat)) {
+                    if (this.vy > 0) {
+                        // Landing on platform from above
+                        this.y = plat.y - this.height;
+                        this.grounded = true;
+                        this.vy = 0;
+                        
+                        // Attach to this platform for movement tracking
+                        this.currentPlatform = plat;
+                        this.lastPlatformX = plat.x;
+                        this.lastPlatformY = plat.y;
+                    } else if (this.vy < 0) {
+                        // Hitting platform from below
+                        this.y = plat.y + plat.height;
+                        this.vy = 0;
+                    }
+                }
+            }
+            
+            // ========================================
+            // STEP 6: Check coin collection
+            // ========================================
+            for (let i = coinList.length - 1; i >= 0; i--) {
+                const coinItem = coinList[i];
+                if (this.collidesWith(coinItem)) {
+                    coinList.splice(i, 1);
+                    score += 100;
+                    coins_collected++;
+                    if (audioManager) audioManager.playSfx('coin');
+                    
+                    // Sparkle particles (blue WiFi theme)
+                    for (let j = 0; j < 8; j++) {
+                        particleList.push(new Particle(
+                            coinItem.x + coinItem.width / 2,
+                            coinItem.y + coinItem.height / 2,
+                            {
+                                color: '#00D4FF',
+                                gravity: 0.05,
+                                decay: 0.03
+                            }
+                        ));
+                    }
+                }
+            }
+            
+            // ========================================
+            // STEP 7: Check enemy collisions
+            // ========================================
+            if (!this.invincible) {
+                for (let i = enems.length - 1; i >= 0; i--) {
+                    const enemy = enems[i];
+                    if (this.collidesWith(enemy)) {
+                        // Stomp check
+                        if (this.vy > 0 && this.y + this.height - enemy.y < 20) {
+                            enems.splice(i, 1);
+                            score += 200;
+                            this.vy = JUMP_FORCE * 0.7;
+                            if (audioManager) audioManager.playSfx('stomp');
+                            
+                            for (let j = 0; j < 12; j++) {
+                                particleList.push(new Particle(
+                                    enemy.x + enemy.width / 2,
+                                    enemy.y + enemy.height / 2,
+                                    {
+                                        color: '#8B4513',  // Brown router pieces
+                                        gravity: 0.1,
+                                        decay: 0.02
+                                    }
+                                ));
+                            }
+                        } else {
+                            this.takeDamage();
+                        }
+                    }
+                }
+            }
+            
+            // ========================================
+            // STEP 8: Update animation and timers
+            // ========================================
+            this.updateAnimationState();
+            
+            if (this.dashing) {
+                this.dashTimer--;
+                if (this.dashTimer <= 0) this.dashing = false;
+            }
+            
+            if (this.invincible) {
+                this.invincibleTimer--;
+                if (this.invincibleTimer <= 0) this.invincible = false;
+            }
+            
+            // Trail particles when dashing
+            if (Math.abs(this.vx) > 4 && Math.random() > 0.5) {
+                particleList.push(new Particle(
+                    this.x + this.width / 2,
+                    this.y + this.height / 2,
+                    {
+                        vx: -this.vx * 0.2,
+                        vy: (Math.random() - 0.5) * 2,
+                        color: this.dashing ? '#00FFFF' : '#FFFFFF',
+                        size: 3,
+                        decay: 0.05,
+                        gravity: 0
+                    }
+                ));
+            }
+        }
+
+        updateAnimationState() {
+            if (!this.grounded) {
+                this.state = this.vy < 0 ? 'jumping' : 'falling';
+            } else if (Math.abs(this.vx) > 0.5) {
+                this.state = 'running';
+            } else {
+                this.state = 'idle';
+            }
+            
+            this.animTimer++;
+            if (this.animTimer > 8) {
+                this.animTimer = 0;
+                this.animFrame = (this.animFrame + 1) % 4;
+            }
+        }
+
+        takeDamage() {
+            lives--;
+            this.invincible = true;
+            this.invincibleTimer = 120;
+            this.vy = JUMP_FORCE * 0.5;
+            this.vx = -this.facing * 5;
+            if (audioManager) audioManager.playSfx('hurt');
+            
+            if (lives <= 0) {
+                gameState = 'gameover';
+                document.getElementById('game-over-screen').style.display = 'flex';
+                document.getElementById('final-score').textContent = 'Final Score: ' + score;
+                if (audioManager) audioManager.pauseMusic();
+            }
+        }
+
+        collidesWith(obj) {
+            return this.x < obj.x + obj.width &&
+                   this.x + this.width > obj.x &&
+                   this.y < obj.y + obj.height &&
+                   this.y + this.height > obj.y;
+        }
+
+        draw(ctx, camX) {
+            ctx.save();
+            
+            const drawX = this.x - camX;
+            const drawY = this.y;
+            
+            if (this.invincible && Math.floor(this.invincibleTimer / 5) % 2 === 0) {
+                ctx.globalAlpha = 0.5;
+            }
+            
+            const sprite = assetManager.get('player');
+            
+            if (this.facing === -1) {
+                ctx.translate(drawX + this.width, drawY);
+                ctx.scale(-1, 1);
+            } else {
+                ctx.translate(drawX, drawY);
+            }
+            
+            if (sprite instanceof HTMLCanvasElement || sprite instanceof HTMLImageElement) {
+                // Draw sprite with antenna offset (sprite is 50x65, body starts at y=22)
+                // The antenna extends -5 pixels above the body
+                let bobOffset = 0;
+                if (this.state === 'running') {
+                    bobOffset = Math.sin(this.animFrame * Math.PI / 2) * 2;
+                }
+                // Draw full sprite, offset by antenna height so body aligns with hitbox
+                ctx.drawImage(sprite, -2, -10 + bobOffset);
+            } else {
+                ctx.fillStyle = '#2ECC71';
+                ctx.fillRect(0, 0, this.width, this.height);
+            }
+            
+            ctx.restore();
+            
+            // === DRAW TEXT SEPARATELY (always right-side up) ===
+            // Calculate position for text based on actual draw position
+            const textX = drawX + this.width / 2;
+            const textY = drawY + 28;  // Position where TP-LINK text appears
+            
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TP-LINK', textX, textY);
+            ctx.restore();
+        }
+    }
+
+    /**
+     * ========================================
+     * PLATFORM CLASS
+     * ========================================
+     */
+    class Platform {
+        constructor(x, y, width, height, type) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.type = type || 'ground';
+            this.originalX = x;
+            this.originalY = y;
+            this.moveRange = 0;
+            this.moveSpeed = 0;
+            this.moveAxis = 'x';
+            this.moveOffset = 0;
+        }
+
+        setMoving(range, speed, axis) {
+            this.moveRange = range;
+            this.moveSpeed = speed;
+            this.moveAxis = axis || 'x';
+            this.type = 'moving';
+            return this;
+        }
+
+        update() {
+            if (this.type === 'moving') {
+                this.moveOffset += this.moveSpeed;
+                if (this.moveAxis === 'x') {
+                    this.x = this.originalX + Math.sin(this.moveOffset) * this.moveRange;
+                } else {
+                    this.y = this.originalY + Math.sin(this.moveOffset) * this.moveRange;
+                }
+            }
+        }
+
+        draw(ctx, camX) {
+            const drawX = this.x - camX;
+            const sprite = assetManager.get('platform');
+            
+            const tilesX = Math.ceil(this.width / TILE_SIZE);
+            
+            for (let i = 0; i < tilesX; i++) {
+                const tileDrawX = drawX + i * TILE_SIZE;
+                const tileWidth = Math.min(TILE_SIZE, this.width - i * TILE_SIZE);
+                
+                if (sprite instanceof HTMLCanvasElement || sprite instanceof HTMLImageElement) {
+                    ctx.drawImage(sprite, tileDrawX, this.y, tileWidth, this.height);
+                } else {
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(tileDrawX, this.y, tileWidth, this.height);
+                    ctx.fillStyle = '#228B22';
+                    ctx.fillRect(tileDrawX, this.y, tileWidth, 6);
+                }
+            }
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.fillRect(drawX, this.y, this.width, 2);
+        }
+    }
+
+    /**
+     * ========================================
+     * COIN CLASS
+     * ========================================
+     */
+    class Coin {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.width = 24;
+            this.height = 24;
+            this.originalY = y;
+            this.animTimer = Math.random() * Math.PI * 2;
+        }
+
+        update() {
+            this.animTimer += 0.08;
+            this.y = this.originalY + Math.sin(this.animTimer) * 5;
+        }
+
+        draw(ctx, camX) {
+            const drawX = this.x - camX;
+            const sprite = assetManager.get('coin');
+            
+            const spinFactor = Math.cos(this.animTimer * 2);
+            const displayWidth = this.width * Math.abs(spinFactor);
+            
+            if (sprite instanceof HTMLCanvasElement || sprite instanceof HTMLImageElement) {
+                ctx.drawImage(
+                    sprite,
+                    drawX + (this.width - displayWidth) / 2,
+                    this.y,
+                    displayWidth,
+                    this.height
+                );
+            } else {
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.ellipse(
+                    drawX + this.width / 2,
+                    this.y + this.height / 2,
+                    displayWidth / 2,
+                    this.height / 2,
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+            }
+            
+            if (Math.random() > 0.95) {
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath();
+                ctx.arc(
+                    drawX + Math.random() * this.width,
+                    this.y + Math.random() * this.height,
+                    2,
+                    0, Math.PI * 2
+                );
+                ctx.fill();
+            }
+        }
+    }
+
+    /**
+     * ========================================
+     * ENEMY CLASS
+     * ========================================
+     */
+    class Enemy {
+        constructor(x, y, patrolRange) {
+            this.x = x;
+            this.y = y;
+            this.width = 46;      // Updated for AURA router sprite
+            this.height = 50;     // Updated for AURA router sprite (excludes antenna)
+            this.originalX = x;
+            this.patrolRange = patrolRange || 100;
+            this.speed = 1.0;     // Reduced for slower, less erratic movement
+            this.direction = 1;
+            this.animFrame = 0;
+            this.animTimer = 0;
+        }
+
+        update() {
+            this.x += this.speed * this.direction;
+            
+            if (this.x > this.originalX + this.patrolRange) {
+                this.direction = -1;
+            } else if (this.x < this.originalX) {
+                this.direction = 1;
+            }
+            
+            this.animTimer++;
+            if (this.animTimer > 10) {
+                this.animTimer = 0;
+                this.animFrame = (this.animFrame + 1) % 2;
+            }
+        }
+
+        draw(ctx, camX) {
+            const drawX = this.x - camX;
+            const sprite = assetManager.get('enemy');
+            
+            ctx.save();
+            
+            if (this.direction === -1) {
+                ctx.translate(drawX + this.width, this.y);
+                ctx.scale(-1, 1);
+            } else {
+                ctx.translate(drawX, this.y);
+            }
+            
+            const bob = this.animFrame * 2;
+            
+            if (sprite instanceof HTMLCanvasElement || sprite instanceof HTMLImageElement) {
+                // Draw sprite with antenna offset (sprite is 50x55, body starts at y=15)
+                // The antenna extends -8 pixels above the body
+                ctx.drawImage(sprite, -2, -8 - bob);
+            } else {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(0, 0, this.width, this.height);
+            }
+            
+            ctx.restore();
+            
+            // === DRAW TEXT SEPARATELY (always right-side up) ===
+            const textX = drawX + this.width / 2;
+            const textY = this.y + 15;  // Position where AURA text appears
+            
+            ctx.save();
+            ctx.fillStyle = '#D4A574';  // Faded gold/cream text
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('AURA', textX, textY);
+            ctx.restore();
+        }
+    }
+
+    /**
+     * ========================================
+     * BACKGROUND CLASS
+     * ========================================
+     */
+    class Background {
+        constructor() {
+            this.layers = [];
+            this.customImage = null;
+            this.createLayers();
+        }
+
+        createLayers() {
+            this.layers[0] = {
+                speed: 0.1,
+                color1: '#1a1a3e',
+                color2: '#2d2d5a',
+                elements: this.generateMountains(5, 0.3)
+            };
+            
+            this.layers[1] = {
+                speed: 0.3,
+                color1: '#2a2a5a',
+                color2: '#3d3d7a',
+                elements: this.generateMountains(7, 0.5)
+            };
+            
+            this.layers[2] = {
+                speed: 0.5,
+                color1: '#3a5a3a',
+                color2: '#4a7a4a',
+                elements: this.generateHills(10)
+            };
+        }
+
+        generateMountains(count, heightFactor) {
+            const mountains = [];
+            const spacing = CANVAS_WIDTH / count;
+            
+            for (let i = 0; i < count; i++) {
+                mountains.push({
+                    x: i * spacing + Math.random() * spacing * 0.5,
+                    width: spacing * (1 + Math.random() * 0.5),
+                    height: CANVAS_HEIGHT * heightFactor * (0.7 + Math.random() * 0.3)
+                });
+            }
+            return mountains;
+        }
+
+        generateHills(count) {
+            const hills = [];
+            const spacing = CANVAS_WIDTH / count;
+            
+            for (let i = 0; i < count; i++) {
+                hills.push({
+                    x: i * spacing,
+                    width: spacing * 2,
+                    height: 50 + Math.random() * 80
+                });
+            }
+            return hills;
+        }
+
+        setCustomImage(img) {
+            this.customImage = img;
+        }
+
+        draw(ctx, camX) {
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(0.5, '#B0E0E6');
+            skyGradient.addColorStop(1, '#E0F6FF');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            if (this.customImage) {
+                const scale = Math.max(
+                    CANVAS_WIDTH / this.customImage.width,
+                    CANVAS_HEIGHT / this.customImage.height
+                );
+                ctx.drawImage(
+                    this.customImage,
+                    -camX * 0.2 % CANVAS_WIDTH, 0,
+                    this.customImage.width * scale,
+                    this.customImage.height * scale
+                );
+                return;
+            }
+            
+            // Draw parallax layers
+            for (let i = 0; i < this.layers.length; i++) {
+                const layer = this.layers[i];
+                const offsetX = camX * layer.speed;
+                
+                ctx.fillStyle = layer.color1;
+                
+                if (i < 2) {
+                    for (let j = 0; j < layer.elements.length; j++) {
+                        const mountain = layer.elements[j];
+                        const drawX = ((mountain.x - offsetX) % (CANVAS_WIDTH + mountain.width)) - mountain.width / 2;
+                        
+                        ctx.fillStyle = i === 0 ? layer.color1 : layer.color2;
+                        ctx.beginPath();
+                        ctx.moveTo(drawX, CANVAS_HEIGHT);
+                        ctx.lineTo(drawX + mountain.width / 2, CANVAS_HEIGHT - mountain.height);
+                        ctx.lineTo(drawX + mountain.width, CANVAS_HEIGHT);
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(drawX + CANVAS_WIDTH, CANVAS_HEIGHT);
+                        ctx.lineTo(drawX + CANVAS_WIDTH + mountain.width / 2, CANVAS_HEIGHT - mountain.height);
+                        ctx.lineTo(drawX + CANVAS_WIDTH + mountain.width, CANVAS_HEIGHT);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                } else {
+                    for (let j = 0; j < layer.elements.length; j++) {
+                        const hill = layer.elements[j];
+                        const drawX = ((hill.x - offsetX) % (CANVAS_WIDTH + hill.width)) - hill.width / 2;
+                        
+                        ctx.fillStyle = layer.color1;
+                        ctx.beginPath();
+                        ctx.ellipse(
+                            drawX + hill.width / 2,
+                            CANVAS_HEIGHT,
+                            hill.width / 2,
+                            hill.height,
+                            0, Math.PI, 0
+                        );
+                        ctx.fill();
+                    }
+                }
+            }
+            
+            this.drawClouds(ctx, camX);
+        }
+
+        drawClouds(ctx, camX) {
+            const cloudPositions = [100, 400, 700, 1000, 1300, 1600, 1900];
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            
+            for (let i = 0; i < cloudPositions.length; i++) {
+                const baseX = (cloudPositions[i] - camX * 0.05) % (CANVAS_WIDTH + 200) - 100;
+                const baseY = 50 + (i % 4) * 50;
+                
+                ctx.beginPath();
+                ctx.arc(baseX, baseY, 30, 0, Math.PI * 2);
+                ctx.arc(baseX + 40, baseY - 15, 40, 0, Math.PI * 2);
+                ctx.arc(baseX + 85, baseY, 35, 0, Math.PI * 2);
+                ctx.arc(baseX + 45, baseY + 15, 28, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    /**
+     * ========================================
+     * LEVEL GENERATOR
+     * Creates consistent, hand-designed level layouts
+     * ========================================
+     */
+    class LevelGenerator {
+        static generate() {
+            const level = {
+                platforms: [],
+                coins: [],
+                enemies: [],
+                width: 7000,
+                startX: 100,
+                startY: CANVAS_HEIGHT - 110
+            };
+            
+            // ========================================
+            // GROUND PLATFORMS - Continuous floor with some gaps
+            // ========================================
+            const groundSegments = [
+                { x: 0, width: 500 },      // Starting area
+                { x: 550, width: 400 },    // After first gap
+                { x: 1000, width: 600 },   // Large platform
+                { x: 1650, width: 350 },   // Medium platform
+                { x: 2050, width: 500 },   // After jump
+                { x: 2600, width: 400 },   // Enemy zone
+                { x: 3050, width: 700 },   // Long stretch
+                { x: 3800, width: 300 },   // Smaller platform
+                { x: 4150, width: 500 },   // Recovery area
+                { x: 4700, width: 400 },   // Before final section
+                { x: 5150, width: 600 },   // Enemy gauntlet
+                { x: 5800, width: 400 },   // Pre-finale
+                { x: 6250, width: 750 },   // Final area
+            ];
+            
+            for (let i = 0; i < groundSegments.length; i++) {
+                const seg = groundSegments[i];
+                level.platforms.push(new Platform(seg.x, CANVAS_HEIGHT - 40, seg.width, 40, 'ground'));
+            }
+            
+            // ========================================
+            // FLOATING PLATFORMS - At reachable heights
+            // Min height: 165px above ground (at max jump height - barely reachable)
+            // This allows jumping on enemies while under platforms
+            // ========================================
+            const floatingPlatforms = [
+                // Section 1: Tutorial area (easy platforms - at jump limit)
+                { x: 200, y: CANVAS_HEIGHT - 205, width: 120 },    // 165px above ground - barely reachable
+                { x: 380, y: CANVAS_HEIGHT - 220, width: 100 },    // 180px above ground
+                { x: 650, y: CANVAS_HEIGHT - 210, width: 120 },    // 170px above ground
+                { x: 850, y: CANVAS_HEIGHT - 230, width: 100 },    // 190px above ground
+                
+                // Section 2: Moving platforms intro
+                { x: 1100, y: CANVAS_HEIGHT - 210, width: 100, moving: true, range: 60, axis: 'x' },
+                { x: 1300, y: CANVAS_HEIGHT - 205, width: 120 },
+                { x: 1450, y: CANVAS_HEIGHT - 220, width: 100, moving: true, range: 40, axis: 'y' },
+                
+                // Section 3: Staircase pattern
+                { x: 1750, y: CANVAS_HEIGHT - 205, width: 100 },
+                { x: 1900, y: CANVAS_HEIGHT - 220, width: 100 },
+                { x: 2050, y: CANVAS_HEIGHT - 210, width: 120 },
+                
+                // Section 4: Challenging section
+                { x: 2200, y: CANVAS_HEIGHT - 210, width: 80, moving: true, range: 50, axis: 'x' },
+                { x: 2400, y: CANVAS_HEIGHT - 205, width: 100 },
+                { x: 2500, y: CANVAS_HEIGHT - 230, width: 80 },
+                
+                // Section 5: Enemy dodge area
+                { x: 2750, y: CANVAS_HEIGHT - 205, width: 150 },
+                { x: 2950, y: CANVAS_HEIGHT - 215, width: 100, moving: true, range: 70, axis: 'x' },
+                
+                // Section 6: Vertical challenge
+                { x: 3200, y: CANVAS_HEIGHT - 205, width: 100 },
+                { x: 3350, y: CANVAS_HEIGHT - 230, width: 100 },
+                { x: 3200, y: CANVAS_HEIGHT - 260, width: 100, moving: true, range: 30, axis: 'y' },
+                { x: 3400, y: CANVAS_HEIGHT - 215, width: 80 },
+                
+                // Section 7: Long stretch platforms
+                { x: 3600, y: CANVAS_HEIGHT - 205, width: 120 },
+                { x: 3900, y: CANVAS_HEIGHT - 220, width: 100 },
+                { x: 4100, y: CANVAS_HEIGHT - 210, width: 100, moving: true, range: 60, axis: 'x' },
+                
+                // Section 8: Recovery with coins
+                { x: 4300, y: CANVAS_HEIGHT - 205, width: 150 },
+                { x: 4500, y: CANVAS_HEIGHT - 225, width: 120 },
+                
+                // Section 9: Pre-finale
+                { x: 4850, y: CANVAS_HEIGHT - 210, width: 100 },
+                { x: 5000, y: CANVAS_HEIGHT - 235, width: 100, moving: true, range: 50, axis: 'y' },
+                { x: 5200, y: CANVAS_HEIGHT - 215, width: 120 },
+                
+                // Section 10: Final challenge
+                { x: 5450, y: CANVAS_HEIGHT - 205, width: 100 },
+                { x: 5600, y: CANVAS_HEIGHT - 225, width: 100, moving: true, range: 60, axis: 'x' },
+                { x: 5900, y: CANVAS_HEIGHT - 210, width: 120 },
+                { x: 6100, y: CANVAS_HEIGHT - 235, width: 100 },
+                { x: 6400, y: CANVAS_HEIGHT - 215, width: 150 },
+                { x: 6600, y: CANVAS_HEIGHT - 240, width: 100 },
+            ];
+            
+            for (let i = 0; i < floatingPlatforms.length; i++) {
+                const plat = floatingPlatforms[i];
+                const platform = new Platform(plat.x, plat.y, plat.width, 25, 'floating');
+                if (plat.moving) {
+                    platform.setMoving(plat.range, 0.02, plat.axis);
+                }
+                level.platforms.push(platform);
+            }
+            
+            // ========================================
+            // COINS - Placed along paths and on platforms
+            // ========================================
+            const coinPositions = [
+                // Starting area coins
+                { x: 150, y: CANVAS_HEIGHT - 100 },
+                { x: 200, y: CANVAS_HEIGHT - 100 },
+                { x: 250, y: CANVAS_HEIGHT - 100 },
+                { x: 200, y: CANVAS_HEIGHT - 240 },   // On first platform (at -205)
+                { x: 380, y: CANVAS_HEIGHT - 260 },   // On second platform (at -220)
+                
+                // First gap area
+                { x: 550, y: CANVAS_HEIGHT - 100 },
+                { x: 650, y: CANVAS_HEIGHT - 250 },   // On platform (at -210)
+                { x: 850, y: CANVAS_HEIGHT - 270 },   // On platform (at -230)
+                
+                // Section 2
+                { x: 1000, y: CANVAS_HEIGHT - 100 },
+                { x: 1100, y: CANVAS_HEIGHT - 250 },  // On moving platform (at -210)
+                { x: 1300, y: CANVAS_HEIGHT - 240 },  // On platform (at -205)
+                { x: 1450, y: CANVAS_HEIGHT - 260 },  // On moving platform (at -220)
+                
+                // Section 3
+                { x: 1750, y: CANVAS_HEIGHT - 240 },  // On platform (at -205)
+                { x: 1900, y: CANVAS_HEIGHT - 260 },  // On platform (at -220)
+                { x: 2050, y: CANVAS_HEIGHT - 100 },
+                
+                // Section 4
+                { x: 2200, y: CANVAS_HEIGHT - 250 },  // On moving platform (at -210)
+                { x: 2400, y: CANVAS_HEIGHT - 240 },  // On platform (at -205)
+                { x: 2500, y: CANVAS_HEIGHT - 270 },  // On platform (at -230)
+                
+                // Ground coins scattered
+                { x: 2700, y: CANVAS_HEIGHT - 100 },
+                { x: 2750, y: CANVAS_HEIGHT - 250 },  // On platform (at -205)
+                { x: 2950, y: CANVAS_HEIGHT - 260 },  // On moving platform (at -215)
+                
+                // Section 6
+                { x: 3200, y: CANVAS_HEIGHT - 240 },  // On platform (at -205)
+                { x: 3350, y: CANVAS_HEIGHT - 270 },  // On platform (at -230)
+                { x: 3200, y: CANVAS_HEIGHT - 300 },  // On high moving platform (at -260)
+                
+                // Section 7
+                { x: 3600, y: CANVAS_HEIGHT - 240 },  // On platform (at -205)
+                { x: 3900, y: CANVAS_HEIGHT - 260 },  // On platform (at -220)
+                { x: 4100, y: CANVAS_HEIGHT - 250 },  // On moving platform (at -210)
+                
+                // Recovery section
+                { x: 4300, y: CANVAS_HEIGHT - 240 },  // On platform (at -205)
+                { x: 4400, y: CANVAS_HEIGHT - 240 },  // On platform (at -205)
+                { x: 4500, y: CANVAS_HEIGHT - 265 },  // On platform (at -225)
+                { x: 4600, y: CANVAS_HEIGHT - 265 },  // On platform (at -225)
+                
+                // Pre-finale
+                { x: 4850, y: CANVAS_HEIGHT - 250 },  // On platform (at -210)
+                { x: 5000, y: CANVAS_HEIGHT - 280 },  // On moving platform (at -235)
+                { x: 5200, y: CANVAS_HEIGHT - 255 },  // On platform (at -215)
+                
+                // Final section
+                { x: 5450, y: CANVAS_HEIGHT - 240 },  // On platform (at -205)
+                { x: 5600, y: CANVAS_HEIGHT - 270 },  // On moving platform (at -225)
+                { x: 5900, y: CANVAS_HEIGHT - 250 },  // On platform (at -210)
+                { x: 6100, y: CANVAS_HEIGHT - 280 },  // On platform (at -235)
+                { x: 6400, y: CANVAS_HEIGHT - 260 },  // On platform (at -215)
+                { x: 6600, y: CANVAS_HEIGHT - 290 },  // On platform (at -240)
+                
+                // Bonus ground coins
+                { x: 3000, y: CANVAS_HEIGHT - 100 },
+                { x: 3050, y: CANVAS_HEIGHT - 100 },
+                { x: 3800, y: CANVAS_HEIGHT - 100 },
+                { x: 5150, y: CANVAS_HEIGHT - 100 },
+                { x: 5200, y: CANVAS_HEIGHT - 100 },
+                { x: 6250, y: CANVAS_HEIGHT - 100 },
+                { x: 6300, y: CANVAS_HEIGHT - 100 },
+            ];
+            
+            for (let i = 0; i < coinPositions.length; i++) {
+                const coin = coinPositions[i];
+                level.coins.push(new Coin(coin.x, coin.y));
+            }
+            
+            // ========================================
+            // ENEMIES - Placed on ground and some platforms
+            // ========================================
+            const enemyPositions = [
+                // Ground enemies with patrol ranges
+                { x: 700, y: CANVAS_HEIGHT - 90, range: 100 },
+                { x: 1200, y: CANVAS_HEIGHT - 90, range: 120 },
+                { x: 1800, y: CANVAS_HEIGHT - 90, range: 80 },
+                { x: 2300, y: CANVAS_HEIGHT - 90, range: 100 },
+                { x: 2700, y: CANVAS_HEIGHT - 90, range: 150 },
+                { x: 3300, y: CANVAS_HEIGHT - 90, range: 120 },
+                { x: 4000, y: CANVAS_HEIGHT - 90, range: 80 },
+                { x: 4400, y: CANVAS_HEIGHT - 90, range: 100 },
+                { x: 5000, y: CANVAS_HEIGHT - 90, range: 150 },
+                { x: 5500, y: CANVAS_HEIGHT - 90, range: 100 },
+                { x: 6000, y: CANVAS_HEIGHT - 90, range: 120 },
+                { x: 6500, y: CANVAS_HEIGHT - 90, range: 100 },
+            ];
+            
+            for (let i = 0; i < enemyPositions.length; i++) {
+                const enemy = enemyPositions[i];
+                level.enemies.push(new Enemy(enemy.x, enemy.y, enemy.range));
+            }
+            
+            // Platform enemies (on wider platforms)
+            // Enemy Y position = platform Y - enemy height (50)
+            const platformEnemyPositions = [
+                { x: 2750, y: CANVAS_HEIGHT - 255, range: 80 },   // Platform at -205, enemy on top
+                { x: 4300, y: CANVAS_HEIGHT - 255, range: 80 },   // Platform at -205
+                { x: 5450, y: CANVAS_HEIGHT - 255, range: 50 },   // Platform at -205
+                { x: 6400, y: CANVAS_HEIGHT - 265, range: 80 },   // Platform at -215
+            ];
+            
+            for (let i = 0; i < platformEnemyPositions.length; i++) {
+                const enemy = platformEnemyPositions[i];
+                level.enemies.push(new Enemy(enemy.x, enemy.y, enemy.range));
+            }
+            
+            return level;
+        }
+    }
+
+    // ========================================
+    // INITIALIZE GAME SYSTEMS
+    // ========================================
+    try {
+        assetManager = new AssetManager();
+        audioManager = new AudioManager();
+        background = new Background();
+        console.log('Game systems initialized successfully!');
+    } catch (e) {
+        console.error('Error initializing game systems:', e);
+    }
+
+    // ========================================
+    // INPUT EVENT LISTENERS
+    // ========================================
+    document.addEventListener('keydown', function(e) {
+        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) !== -1) {
+            e.preventDefault();
+        }
+        
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+            if (Date.now() - lastLeftPress < DOUBLE_TAP_TIME && !keys.left) {
+                if (player) {
+                    player.dashing = true;
+                    player.dashTimer = 30;
+                }
+            }
+            lastLeftPress = Date.now();
+            keys.left = true;
+        }
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            if (Date.now() - lastRightPress < DOUBLE_TAP_TIME && !keys.right) {
+                if (player) {
+                    player.dashing = true;
+                    player.dashTimer = 30;
+                }
+            }
+            lastRightPress = Date.now();
+            keys.right = true;
+        }
+        if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+            keys.up = true;
+            keys.jump = true;
+        }
+        if (e.code === 'Space') {
+            keys.jump = true;
+        }
+        if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+            keys.down = true;
+        }
+    });
+
+    document.addEventListener('keyup', function(e) {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+            keys.left = false;
+        }
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            keys.right = false;
+        }
+        if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+            keys.jump = false;
+        }
+        if (e.code === 'Space') {
+            keys.jump = false;
+        }
+        if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+            keys.down = false;
+        }
+    });
+
+    // ========================================
+    // UI EVENT HANDLERS
+    // ========================================
+    
+    // Settings button
+    document.getElementById('settings-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        const modal = document.getElementById('settings-modal');
+        modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        console.log('Settings button clicked, modal display:', modal.style.display);
+    });
+    
+    // Close settings modal
+    document.getElementById('close-settings').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('settings-modal').style.display = 'none';
+    });
+    
+    // Close modal when clicking outside
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('settings-modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        if (modal.style.display === 'block' && 
+            !modal.contains(e.target) && 
+            e.target !== settingsBtn) {
+            modal.style.display = 'none';
+        }
+    });
+
+    // Asset replacement handlers
+    document.getElementById('player-texture-input').addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            assetManager.loadImage(e.target.files[0], 'player');
+        }
+    });
+
+    document.getElementById('background-input').addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const img = new Image();
+                img.onload = function() {
+                    background.setCustomImage(img);
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+
+    document.getElementById('platform-input').addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            assetManager.loadImage(e.target.files[0], 'platform');
+        }
+    });
+
+    document.getElementById('enemy-input').addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            assetManager.loadImage(e.target.files[0], 'enemy');
+        }
+    });
+
+    document.getElementById('music-input').addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            assetManager.loadAudio(e.target.files[0]);
+        }
+    });
+
+    // Volume controls
+    document.getElementById('music-volume').addEventListener('input', function(e) {
+        audioManager.setMusicVolume(e.target.value / 100);
+    });
+
+    document.getElementById('sfx-volume').addEventListener('input', function(e) {
+        audioManager.setSfxVolume(e.target.value / 100);
+    });
+
+    // Start button
+    document.getElementById('start-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('Start button clicked!');
+        startGame();
+    });
+
+    // Restart button
+    document.getElementById('restart-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('game-over-screen').style.display = 'none';
+        
+        // Reset name input and scoreboard visibility
+        document.getElementById('name-input-section').style.display = 'block';
+        document.getElementById('scoreboard-section').style.display = 'none';
+        document.getElementById('player-name-input').value = '';
+        
+        startGame();
+    });
+
+    // ========================================
+    // SCOREBOARD SYSTEM
+    // Uses localStorage to persist high scores
+    // ========================================
+    const SCOREBOARD_KEY = 'wifi_router_adventure_scores';
+    
+    /**
+     * Load scores from localStorage
+     * @returns Array of score objects
+     */
+    function loadScores() {
+        try {
+            const stored = localStorage.getItem(SCOREBOARD_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (e) {
+            console.warn('Could not load scores from localStorage:', e);
+        }
+        return [];
+    }
+    
+    /**
+     * Save scores to localStorage
+     * @param scores Array of score objects
+     */
+    function saveScores(scores) {
+        try {
+            localStorage.setItem(SCOREBOARD_KEY, JSON.stringify(scores));
+        } catch (e) {
+            console.warn('Could not save scores to localStorage:', e);
+        }
+    }
+    
+    /**
+     * Add a new score to the scoreboard
+     * @param name Player name
+     * @param scoreVal Score value
+     * @param coinsVal Coins collected
+     */
+    function addScore(name, scoreVal, coinsVal) {
+        const scores = loadScores();
+        
+        // Add new score with timestamp
+        scores.push({
+            name: name || 'Anonymous',
+            score: scoreVal,
+            coins: coinsVal,
+            date: new Date().toISOString()
+        });
+        
+        // Sort by score (descending)
+        scores.sort(function(a, b) {
+            return b.score - a.score;
+        });
+        
+        // Keep only top 10
+        const topScores = scores.slice(0, 10);
+        
+        // Save back to localStorage
+        saveScores(topScores);
+        
+        return topScores;
+    }
+    
+    /**
+     * Display the scoreboard
+     */
+    function displayScoreboard() {
+        const scores = loadScores();
+        const tbody = document.getElementById('scoreboard-body');
+        tbody.innerHTML = '';
+        
+        if (scores.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #aaa;">No scores yet. Be the first!</td></tr>';
+        } else {
+            // Show top 5
+            const top5 = scores.slice(0, 5);
+            for (let i = 0; i < top5.length; i++) {
+                const entry = top5[i];
+                const rank = i + 1;
+                const rankClass = rank <= 3 ? 'rank-' + rank : '';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = 
+                    '<td class="' + rankClass + '">' + rank + '</td>' +
+                    '<td class="' + rankClass + '">' + escapeHtml(entry.name) + '</td>' +
+                    '<td class="' + rankClass + '">' + entry.score.toLocaleString() + '</td>' +
+                    '<td class="' + rankClass + '">' + entry.coins + '</td>';
+                tbody.appendChild(row);
+            }
+        }
+        
+        document.getElementById('scoreboard-section').style.display = 'block';
+    }
+    
+    /**
+     * Escape HTML to prevent XSS
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Submit score button handler
+    document.getElementById('submit-score-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const nameInput = document.getElementById('player-name-input');
+        const name = nameInput.value.trim() || 'Anonymous';
+        
+        // Add score to leaderboard
+        addScore(name, score, coins_collected);
+        
+        // Hide name input, show scoreboard
+        document.getElementById('name-input-section').style.display = 'none';
+        displayScoreboard();
+    });
+    
+    // Allow Enter key to submit score
+    document.getElementById('player-name-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('submit-score-btn').click();
+        }
+    });
+
+    // ========================================
+    // GAME FUNCTIONS
+    // ========================================
+    function startGame() {
+        console.log('Starting game...');
+        
+        // Initialize audio
+        audioManager.init();
+        
+        // Generate level
+        levelData = LevelGenerator.generate();
+        
+        // Initialize game objects
+        platforms = levelData.platforms;
+        coinsArray = levelData.slice ? levelData.coins : levelData.coins;
+        enemies = levelData.enemies;
+        particles = [];
+        player = new Player(levelData.startX, levelData.startY);
+        
+        // Reset state
+        score = 0;
+        coins_collected = 0;
+        lives = 3;
+        timeLeft = 300;
+        cameraX = 0;
+        gameState = 'playing';
+        
+        // Hide start screen
+        document.getElementById('start-screen').style.display = 'none';
+        
+        // Start music
+        audioManager.playMusic();
+        
+        // Start game loop
+        gameLoop();
+        
+        // Start timer
+        startTimer();
+        
+        console.log('Game started!');
+    }
+
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        
+        timerInterval = setInterval(function() {
+            if (gameState === 'playing') {
+                timeLeft--;
+                document.getElementById('timer-count').textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    if (player) {
+                        player.takeDamage();
+                        timeLeft = 300;
+                    }
+                }
+            }
+        }, 1000);
+    }
+
+    function gameLoop() {
+        if (gameState !== 'playing') return;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        
+        // Update
+        update();
+        
+        // Render
+        render();
+        
+        // Update HUD
+        updateHUD();
+        
+        // Continue loop
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+        // ========================================
+        // IMPORTANT: Update platforms FIRST
+        // This allows player to track platform movement
+        // ========================================
+        for (let i = 0; i < platforms.length; i++) {
+            platforms[i].update();
+        }
+        
+        // Update coins
+        for (let i = 0; i < coinsArray.length; i++) {
+            coinsArray[i].update();
+        }
+        
+        // Update enemies
+        for (let i = 0; i < enemies.length; i++) {
+            enemies[i].update();
+        }
+        
+        // Update player AFTER platforms (so it can track platform movement)
+        player.update(platforms, enemies, coinsArray, particles);
+        
+        // Update camera
+        const targetCameraX = player.x - CANVAS_WIDTH / 3;
+        cameraX += (targetCameraX - cameraX) * 0.1;
+        cameraX = Math.max(0, Math.min(cameraX, levelData.width - CANVAS_WIDTH));
+        
+        // Update particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update();
+            if (particles[i].isDead()) {
+                particles.splice(i, 1);
+            }
+        }
+        
+        // Check if player fell
+        if (player.y > CANVAS_HEIGHT + 100) {
+            player.takeDamage();
+            player.x = levelData.startX;
+            player.y = levelData.startY;
+            player.vx = 0;
+            player.vy = 0;
+        }
+    }
+
+    function render() {
+        // Draw background
+        background.draw(ctx, cameraX);
+        
+        // Draw platforms
+        for (let i = 0; i < platforms.length; i++) {
+            const p = platforms[i];
+            if (p.x + p.width > cameraX && p.x < cameraX + CANVAS_WIDTH) {
+                p.draw(ctx, cameraX);
+            }
+        }
+        
+        // Draw coins
+        for (let i = 0; i < coinsArray.length; i++) {
+            const c = coinsArray[i];
+            if (c.x + c.width > cameraX && c.x < cameraX + CANVAS_WIDTH) {
+                c.draw(ctx, cameraX);
+            }
+        }
+        
+        // Draw enemies
+        for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            if (e.x + e.width > cameraX && e.x < cameraX + CANVAS_WIDTH) {
+                e.draw(ctx, cameraX);
+            }
+        }
+        
+        // Draw player
+        player.draw(ctx, cameraX);
+        
+        // Draw particles
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].draw(ctx, cameraX);
+        }
+        
+        // Draw VFX
+        drawVFX();
+    }
+
+    function drawVFX() {
+        // Vignette
+        const vignette = ctx.createRadialGradient(
+            CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_HEIGHT * 0.4,
+            CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_HEIGHT * 0.8
+        );
+        vignette.addColorStop(0, 'rgba(0,0,0,0)');
+        vignette.addColorStop(1, 'rgba(0,0,0,0.3)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        
+        // Speed lines when dashing
+        if (player && player.dashing) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                const y = Math.random() * CANVAS_HEIGHT;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(CANVAS_WIDTH, y + (Math.random() - 0.5) * 50);
+                ctx.stroke();
+            }
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('coin-count').textContent = coins_collected;
+        document.getElementById('score-count').textContent = score;
+        document.getElementById('lives-count').textContent = lives;
+    }
+
+    // ========================================
+    // RESPONSIVE CANVAS - Auto-fit to screen
+    // Uses CSS transform for crisp scaling
+    // ========================================
+    function resizeCanvas() {
+        const container = document.getElementById('game-container');
+        const maxWidth = window.innerWidth * 0.92;
+        const maxHeight = window.innerHeight * 0.92;
+        
+        // Calculate scale to fit screen while maintaining aspect ratio
+        const scale = Math.min(maxWidth / CANVAS_WIDTH, maxHeight / CANVAS_HEIGHT, 1.2);
+        
+        // Apply transform for crisp scaling
+        container.style.transform = 'scale(' + scale + ')';
+        container.style.transformOrigin = 'center center';
+        
+        // Log for debugging
+        console.log('Canvas scaled to:', (scale * 100).toFixed(0) + '%', 
+                    '| Display size:', Math.round(CANVAS_WIDTH * scale) + 'x' + Math.round(CANVAS_HEIGHT * scale));
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Initial resize
+    resizeCanvas();
+
+    console.log('WiFi Router Adventure loaded! Click START GAME to play. TP-LINK vs AURA!');
+    </script>
+</body>
+</html>
