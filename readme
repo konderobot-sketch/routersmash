@@ -34,3 +34,26 @@ Or make them equal:
 javascript
 
 audioManager.setRainVolume(0.2);  // Same volume for both
+
+## Change highscores count:
+
+Yes! Find this line in the displayScoreboard function:
+
+for (let i = 0; i < Math.min(5, scores.length); i++) {
+Change the 5 to 10:
+for (let i = 0; i < Math.min(10, scores.length); i++) {
+
+##CLEAR high scores:
+
+Yes, you need to do it directly in Supabase dashboard:
+
+Go to your Supabase project: https://supabase.com/dashboard
+Click Table Editor in the left sidebar
+Select the scores table
+Click the checkbox at the top-left to select all rows
+Click the trash/delete icon (or right-click → Delete)
+Or use SQL:
+
+Go to SQL Editor in Supabase dashboard
+Run: DELETE FROM scores;
+Click Run
