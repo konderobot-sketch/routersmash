@@ -1,17 +1,17 @@
 {
   "name": "WiFi Router Adventure",
-  "short_name": "WiFi Adventure",
-  "description": "Endless platformer adventure!",
+  "short_name": "WiFi Router",
   "start_url": "./aurasuxx-v5.html",
   "display": "standalone",
   "background_color": "#1a1a2e",
-  "theme_color": "#16213e",
+  "theme_color": "#f5576c",
   "orientation": "landscape",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/93/93158.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
