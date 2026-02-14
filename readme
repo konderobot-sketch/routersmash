@@ -1,5 +1,7 @@
 To change background music:
 
+Line 759
+
 Add your audio files (MP3, OGG, WAV) to the same folder as the HTML file
 Edit the playlist - find this line near the top of the script:
 
