@@ -515,8 +515,8 @@
         
         .mobile-btn {
             position: absolute;
-            width: 70px;
-            height: 70px;
+            width: 75px;  /* Standard size for L/R */
+            height: 75px;
             border-radius: 50%;
             background: rgba(255,255,255,0.2);
             border: 3px solid rgba(255,255,255,0.4);
@@ -537,36 +537,32 @@
         }
         
         #btn-left {
-            left: 20px;
-            bottom: 20px;
+            left: 30px;
+            bottom: 30px;
         }
         
         #btn-right {
-            left: 100px;
-            bottom: 20px;
+            left: 125px; /* Spaced away from Left button */
+            bottom: 30px;
         }
         
+        /* The Enormo-Jump Button */
         #btn-jump {
-            width: 120px; 
-            height: 120px;
+            right: 40px;  /* Anchored to the far RIGHT */
+            bottom: 30px;
+            width: 125px; /* ~35% larger than movement buttons */
+            height: 125px;
             background: rgba(0, 150, 255, 0.4); /* Blue tint */
             border: 4px solid rgba(255, 255, 255, 0.7);
-            font-size: 26px;
+            font-size: 32px;
         }
-        /*
-        #btn-dash {
-            right: 130px;
-            bottom: 20px;
-            width: 60px;
-            height: 60px;
-            font-size: 22px;
-        }
-        */
+
         /* Show mobile controls on touch devices */
         @media (pointer: coarse) {
             #mobile-controls {
                 display: block;
             }
+        }
             #hud {
                 top: 5px;
                 padding: 6px 12px;
