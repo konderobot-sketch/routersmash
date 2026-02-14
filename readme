@@ -10,3 +10,27 @@ const MUSIC_PLAYLIST = [];  // Empty = no music controls shown
 Change it to:
 
 const MUSIC_PLAYLIST = ['song1.mp3', 'song2.mp3', 'track3.ogg'];
+
+
+##
+Change weather pattern frequency and rain effect volume:
+
+Yes! Look for this in the Weather class, in the setWeather method:
+
+javascript
+
+audioManager.setRainVolume(type === 'storm' ? 0.15 : 0.1);
+The values are:
+
+0.1 = Rain volume (10%)
+0.15 = Storm rain volume (15%)
+Change them to whatever you want (0 = silent, 1 = max volume). For example:
+
+javascript
+
+audioManager.setRainVolume(type === 'storm' ? 0.3 : 0.2);  // Louder rain
+Or make them equal:
+
+javascript
+
+audioManager.setRainVolume(0.2);  // Same volume for both
