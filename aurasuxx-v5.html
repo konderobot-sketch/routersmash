@@ -1838,7 +1838,7 @@
             if (type === 'rain' || type === 'storm') {
                 if (audioManager) {
                     audioManager.startRainSound();
-                    audioManager.setRainVolume(type === 'storm' ? 0.3 : 0.05);
+                    audioManager.setRainVolume(type === 'storm' ? 0.6 : 0.05);
                 }
             } else {
                 if (audioManager) {
@@ -2075,7 +2075,7 @@
             const scores = await loadScores();
             if (scores.length === 0) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#aaa;">No scores yet!</td></tr>';
             else {
-                for (let i = 0; i < Math.min(5, scores.length); i++) {
+                for (let i = 0; i < Math.min(10, scores.length); i++) {
                     const e = scores[i];
                     const rc = i < 3 ? 'rank-' + (i + 1) : '';
                     const row = document.createElement('tr');
