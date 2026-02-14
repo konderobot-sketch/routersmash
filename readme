@@ -57,3 +57,31 @@ Or use SQL:
 Go to SQL Editor in Supabase dashboard
 Run: DELETE FROM scores;
 Click Run
+
+## TO DISABLE WEATHER EFFECTS:
+
+Yes! Just comment out these 4 places in the code:
+
+1. Initialize weather (around line 2062):
+
+// weather = new Weather();
+
+2. Update weather in game loop (around line 2307):
+
+// if (weather) weather.update();
+
+3. Draw weather effects in render (around lines 2339-2344):
+
+// if (weather) weather.draw(ctx, cameraX);
+// 
+// // Sky darkening overlay for storms
+// if (weather && weather.getSkyDarkness() > 0) {
+//     ctx.fillStyle = `rgba(30, 30, 50, ${weather.getSkyDarkness() * 0.4})`;
+//     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+// }
+
+4. Pass weather to background draw (around line 2327):
+
+background.draw(ctx, cameraX);  // Remove 'weather' parameter
+
+
