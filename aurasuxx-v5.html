@@ -547,13 +547,13 @@
         }
         
         #btn-jump {
-            right: 30px;
-            bottom: 20px;
-            width: 90px;
-            height: 90px;
-            font-size: 32px;
+            width: 120px; 
+            height: 120px;
+            background: rgba(0, 150, 255, 0.4); /* Blue tint */
+            border: 4px solid rgba(255, 255, 255, 0.7);
+            font-size: 26px;
         }
-        
+        /*
         #btn-dash {
             right: 130px;
             bottom: 20px;
@@ -561,7 +561,7 @@
             height: 60px;
             font-size: 22px;
         }
-        
+        */
         /* Show mobile controls on touch devices */
         @media (pointer: coarse) {
             #mobile-controls {
@@ -679,7 +679,6 @@ html, body {
         <div id="mobile-controls">
             <button class="mobile-btn" id="btn-left">◀</button>
             <button class="mobile-btn" id="btn-right">▶</button>
-            <button class="mobile-btn" id="btn-dash">💨</button>
             <button class="mobile-btn" id="btn-jump">⬆</button>
         </div>
         
@@ -2185,7 +2184,7 @@ html, body {
     setupMobileButton('btn-left', 'left', false);
     setupMobileButton('btn-right', 'right', false);
     setupMobileButton('btn-jump', null, true);
-    
+    /*
     // Dash button - double tap right
     document.getElementById('btn-dash').addEventListener('touchstart', function(e) {
         e.preventDefault();
@@ -2194,7 +2193,8 @@ html, body {
             player.dashTimer = 15;
         }
     }, { passive: false });
-    
+    */
+        
     // ========================================
     // OTHER EVENT LISTENERS
     // ========================================
