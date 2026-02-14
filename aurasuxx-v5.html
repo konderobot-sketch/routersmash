@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
     <title>WiFi Router Adventure - Endless Mode</title>
     
     <!--
@@ -50,13 +53,12 @@
         
         #game-container {
             position: relative;
-            border-radius: 12px;
+            width: 1400px; /* Keep your original internal resolution */
+            height: 800px;
             overflow: hidden;
-            box-shadow: 
-                0 0 60px rgba(0, 200, 255, 0.3),
-                0 0 100px rgba(255, 100, 200, 0.2),
-                inset 0 0 60px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 60px rgba(0, 200, 255, 0.3);
             flex-shrink: 0;
+            transform-origin: center center; /* Critical for scaling */
         }
         
         #game-canvas {
@@ -2385,22 +2387,41 @@ html, body {
     // RESPONSIVE - FIXED FOR MOBILE LANDSCAPE
     // ========================================
     
+// Replacement for your existing resizeCanvas
 function resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
-
-    const vw = document.documentElement.clientWidth;
-    const vh = document.documentElement.clientHeight;
-
-    const scale = Math.min(vw / GAME_WIDTH, vh / GAME_HEIGHT);
-
-    canvas.style.width  = GAME_WIDTH * scale + "px";
-    canvas.style.height = GAME_HEIGHT * scale + "px";
-
-    canvas.width  = GAME_WIDTH * dpr;
-    canvas.height = GAME_HEIGHT * dpr;
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const container = document.getElementById('game-container');
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    
+    // Calculate the perfect scale to fit the screen
+    const scaleX = vw / 1400;
+    const scaleY = vh / 800;
+    const scale = Math.min(scaleX, scaleY);
+    
+    container.style.transform = `scale(${scale})`;
 }
+
+// Add this to register the PWA service worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
+    });
+}
+
+// Fullscreen trigger: Call this when the "Start Game" button is clicked
+function goFullScreen() {
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+    }
+}
+
+// Update your start-btn listener to include the fullscreen request
+document.getElementById('start-btn').addEventListener('click', () => {
+    goFullScreen();
+    // ... keep your existing start logic here ...
+});
 
 
     window.addEventListener('resize', resizeCanvas);
