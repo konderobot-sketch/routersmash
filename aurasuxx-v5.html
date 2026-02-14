@@ -1760,7 +1760,7 @@
             this.types = ['clear', 'rain', 'storm', 'fog'];  // storm = rain + lightning
             this.current = 'clear';
             this.timer = 0;
-            this.changeInterval = 45 * 60;  // 45 seconds at 60fps
+            this.changeInterval = 60 * 60;  // 60 seconds at 60fps
             
             // Rain drops
             this.rainDrops = [];
@@ -1838,7 +1838,7 @@
             if (type === 'rain' || type === 'storm') {
                 if (audioManager) {
                     audioManager.startRainSound();
-                    audioManager.setRainVolume(type === 'storm' ? 0.6 : 0.05);
+                    audioManager.setRainVolume(type === 'storm' ? 0.05 : 0.5);
                 }
             } else {
                 if (audioManager) {
