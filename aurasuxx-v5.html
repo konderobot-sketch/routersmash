@@ -1182,28 +1182,38 @@ html, body {
         keys.left = stickX < -0.3 || dpadLeft;
         keys.right = stickX > 0.3 || dpadRight;
 
-        // Jump: A button (button 0) or B button (button 1)
-        keys.jump = gp.buttons[0].pressed || gp.buttons[1].pressed;
+        // Jump: A button (button 0) or B button (button 1) - only during gameplay
+        if (gameState === 'playing') {
+            keys.jump = gp.buttons[0].pressed || gp.buttons[1].pressed;
+        }
 
         // Menu navigation with gamepad
-        // Start button (button 9) - Start game / Restart / Submit name
+        // Start button (button 9) - Start game / Submit name
         const startPressed = gp.buttons[9].pressed;
-        if (startPressed && !lastStartPress) {
-            if (gameState === 'start') {
+        const aPressed = gp.buttons[0].pressed;
+        
+        if (gameState === 'start') {
+            // Title screen - A or Start to begin
+            if ((startPressed || aPressed) && !lastStartPress) {
                 startGame();
-            } else if (gameState === 'gameover' && gamepadNameMode) {
-                // Submit name from gamepad entry
+            }
+        } else if (gameState === 'gameover' && gamepadNameMode) {
+            // Name entry screen - Start submits
+            if (startPressed && !lastStartPress) {
                 submitGamepadName();
-            } else if (gameState === 'gameover') {
+            }
+        } else if (gameState === 'gameover') {
+            // Game over without name entry - A or Start to restart
+            if ((startPressed || aPressed) && !lastStartPress) {
                 document.getElementById('game-over-screen').style.display = 'none';
-                document.getElementById('name-input-section').style.display = 'block';
+                hideGamepadNameEntry();
                 document.getElementById('scoreboard-section').style.display = 'none';
                 document.getElementById('player-name-input').value = '';
                 document.getElementById('submit-status').textContent = '';
                 startGame();
             }
         }
-        lastStartPress = startPressed;
+        lastStartPress = startPressed || aPressed;
 
         // Back/Select (button 8) or Y (button 3) - Return to title screen
         const backPressed = gp.buttons[8].pressed || gp.buttons[3].pressed;
@@ -1228,18 +1238,18 @@ html, body {
             const totalButtons = LETTERS.length + 2;  // letters + DEL + SUBMIT
             
             // Navigate with d-pad or left stick (with delay to prevent too fast movement)
-            const stickX = gp.axes[0];
-            const stickY = gp.axes[1];
+            const navStickX = gp.axes[0];
+            const navStickY = gp.axes[1];
             const dpadLeft = gp.buttons[14] ? gp.buttons[14].pressed : false;
             const dpadRight = gp.buttons[15] ? gp.buttons[15].pressed : false;
             const dpadUp = gp.buttons[12] ? gp.buttons[12].pressed : false;
             const dpadDown = gp.buttons[13] ? gp.buttons[13].pressed : false;
             
             const cols = 10;  // 10 letters per row
-            const goLeft = stickX < -0.5 || dpadLeft;
-            const goRight = stickX > 0.5 || dpadRight;
-            const goUp = stickY < -0.5 || dpadUp;
-            const goDown = stickY > 0.5 || dpadDown;
+            const goLeft = navStickX < -0.5 || dpadLeft;
+            const goRight = navStickX > 0.5 || dpadRight;
+            const goUp = navStickY < -0.5 || dpadUp;
+            const goDown = navStickY > 0.5 || dpadDown;
             
             if (now - lastLetterNavTime > LETTER_NAV_DELAY) {
                 if (goLeft) {
@@ -1265,8 +1275,8 @@ html, body {
             }
             
             // A button - select letter/action
-            const aPressed = gp.buttons[0].pressed;
-            if (aPressed && !lastAPress) {
+            const aPressedNow = gp.buttons[0].pressed;
+            if (aPressedNow && !lastAPress) {
                 if (letterGridCursor < LETTERS.length) {
                     selectLetter(LETTERS[letterGridCursor]);
                 } else if (letterGridCursor === LETTERS.length) {
@@ -1275,14 +1285,14 @@ html, body {
                     submitGamepadName();
                 }
             }
-            lastAPress = aPressed;
+            lastAPress = aPressedNow;
             
             // B button (button 1) - delete
-            const bPressed = gp.buttons[1].pressed;
-            if (bPressed && !lastBPress) {
+            const bPressedNow = gp.buttons[1].pressed;
+            if (bPressedNow && !lastBPress) {
                 deleteLastLetter();
             }
-            lastBPress = bPressed;
+            lastBPress = bPressedNow;
         }
     }
 
@@ -2599,8 +2609,14 @@ html, body {
         requestAnimationFrame(gameLoop);
     }
 
-    function update() {
+    // Separate loop for gamepad menu navigation (always runs)
+    function menuLoop() {
         pollGamepad();  // Poll gamepad input every frame
+        requestAnimationFrame(menuLoop);
+    }
+    menuLoop();  // Start immediately
+
+    function update() {
         for (const p of platforms) p.update();
         for (const c of coinsArray) c.update();
         for (const e of enemies) e.update();
