@@ -376,6 +376,7 @@
         #name-input-section {
             margin: 10px 0;
             text-align: center;
+            display: none;  /* Hidden by default, shown when needed */
         }
         
         #player-name-input {
@@ -396,6 +397,83 @@
         
         #player-name-input:focus {
             border-color: #667eea;
+        }
+        
+        /* Gamepad Name Entry */
+        #gamepad-name-entry {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        #current-name-display {
+            font-size: 24px;
+            color: #fff;
+            background: rgba(0,0,0,0.4);
+            padding: 10px 30px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            min-width: 200px;
+            text-align: center;
+            border: 2px solid #667eea;
+        }
+        
+        #letter-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 400px;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .letter-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .letter-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .letter-btn.selected {
+            background: #667eea;
+            border-color: #fff;
+            box-shadow: 0 0 15px rgba(102,126,234,0.8);
+            transform: scale(1.1);
+        }
+        
+        .letter-btn.action {
+            width: 80px;
+            background: rgba(255,100,100,0.3);
+        }
+        
+        .letter-btn.action.selected {
+            background: #f5576c;
+        }
+        
+        .letter-btn.submit-btn {
+            background: rgba(100,200,100,0.3);
+            width: 120px;
+        }
+        
+        .letter-btn.submit-btn.selected {
+            background: #2ECC71;
+        }
+        
+        #gamepad-name-hint {
+            color: #aaa;
+            font-size: 11px;
+            margin-top: 5px;
         }
         
         #submit-score-btn {
@@ -716,6 +794,14 @@ html, body {
                 <div id="submit-status" class="loading-indicator"></div>
             </div>
             
+            <!-- Gamepad Name Entry -->
+            <div id="gamepad-name-entry">
+                <div id="current-name-display">_</div>
+                <div id="letter-grid"></div>
+                <div id="gamepad-name-hint">← → Move | A Select | B Delete | Start Submit</div>
+                <div id="submit-status-gamepad" class="loading-indicator"></div>
+            </div>
+            
             <div id="scoreboard-section" style="display: none;">
                 <h3 style="color: #fff; margin: 15px 0 10px; font-size: 18px;">🏆 Global Leaderboard <span class="global-badge">LIVE</span></h3>
                 <table id="scoreboard-table">
@@ -961,6 +1047,18 @@ html, body {
     // ========================================
     let gamepadConnected = false;
     let gamepadIndex = null;
+    let lastStartPress = false;  // For debouncing menu buttons
+    let lastBackPress = false;
+    let lastAPress = false;      // For name entry
+    let lastBPress = false;
+
+    // Gamepad name entry state
+    let gamepadNameMode = false;
+    let enteredName = '';
+    let letterGridCursor = 0;
+    let lastLetterNavTime = 0;
+    const LETTER_NAV_DELAY = 150;  // ms between navigation moves
+    const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_'.split('');
 
     window.addEventListener('gamepadconnected', (e) => {
         console.log('🎮 Gamepad connected:', e.gamepad.id);
@@ -975,6 +1073,98 @@ html, body {
         gamepadIndex = null;
         document.getElementById('gamepad-indicator').style.display = 'none';
     });
+
+    // Generate the letter grid for gamepad name entry
+    function generateLetterGrid() {
+        const grid = document.getElementById('letter-grid');
+        grid.innerHTML = '';
+        
+        // Add letters A-Z, 0-9, and underscore
+        LETTERS.forEach((letter, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'letter-btn';
+            btn.textContent = letter;
+            btn.dataset.index = index;
+            btn.addEventListener('click', () => selectLetter(letter));
+            grid.appendChild(btn);
+        });
+        
+        // Add DEL button
+        const delBtn = document.createElement('button');
+        delBtn.className = 'letter-btn action';
+        delBtn.textContent = 'DEL';
+        delBtn.dataset.index = LETTERS.length;
+        delBtn.addEventListener('click', deleteLastLetter);
+        grid.appendChild(delBtn);
+        
+        // Add SUBMIT button
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'letter-btn submit-btn';
+        submitBtn.textContent = 'SUBMIT';
+        submitBtn.dataset.index = LETTERS.length + 1;
+        submitBtn.addEventListener('click', submitGamepadName);
+        grid.appendChild(submitBtn);
+        
+        updateLetterGridSelection();
+    }
+
+    function updateLetterGridSelection() {
+        const buttons = document.querySelectorAll('#letter-grid .letter-btn');
+        buttons.forEach((btn, index) => {
+            btn.classList.toggle('selected', index === letterGridCursor);
+        });
+    }
+
+    function updateNameDisplay() {
+        const display = document.getElementById('current-name-display');
+        display.textContent = enteredName + (enteredName.length < 15 ? '_' : '');
+    }
+
+    function selectLetter(letter) {
+        if (enteredName.length < 15) {
+            enteredName += letter === '_' ? ' ' : letter;
+            updateNameDisplay();
+        }
+    }
+
+    function deleteLastLetter() {
+        enteredName = enteredName.slice(0, -1);
+        updateNameDisplay();
+    }
+
+    async function submitGamepadName() {
+        if (enteredName.trim().length === 0) {
+            enteredName = 'Player';
+        }
+        
+        const status = document.getElementById('submit-status-gamepad');
+        status.textContent = 'Submitting...';
+        
+        const success = await submitScore(enteredName.trim(), score, distance, coins_collected);
+        status.textContent = success ? 'Submitted!' : 'Failed';
+        status.style.color = success ? '#00FF00' : '#FF6600';
+        
+        if (success) {
+            document.getElementById('gamepad-name-entry').style.display = 'none';
+            await displayScoreboard();
+        }
+    }
+
+    function showGamepadNameEntry() {
+        gamepadNameMode = true;
+        enteredName = '';
+        letterGridCursor = 0;
+        document.getElementById('name-input-section').style.display = 'none';
+        document.getElementById('gamepad-name-entry').style.display = 'flex';
+        document.getElementById('submit-status-gamepad').textContent = '';
+        generateLetterGrid();
+        updateNameDisplay();
+    }
+
+    function hideGamepadNameEntry() {
+        gamepadNameMode = false;
+        document.getElementById('gamepad-name-entry').style.display = 'none';
+    }
 
     function pollGamepad() {
         if (!gamepadConnected || gamepadIndex === null) return;
@@ -994,6 +1184,106 @@ html, body {
 
         // Jump: A button (button 0) or B button (button 1)
         keys.jump = gp.buttons[0].pressed || gp.buttons[1].pressed;
+
+        // Menu navigation with gamepad
+        // Start button (button 9) - Start game / Restart / Submit name
+        const startPressed = gp.buttons[9].pressed;
+        if (startPressed && !lastStartPress) {
+            if (gameState === 'start') {
+                startGame();
+            } else if (gameState === 'gameover' && gamepadNameMode) {
+                // Submit name from gamepad entry
+                submitGamepadName();
+            } else if (gameState === 'gameover') {
+                document.getElementById('game-over-screen').style.display = 'none';
+                document.getElementById('name-input-section').style.display = 'block';
+                document.getElementById('scoreboard-section').style.display = 'none';
+                document.getElementById('player-name-input').value = '';
+                document.getElementById('submit-status').textContent = '';
+                startGame();
+            }
+        }
+        lastStartPress = startPressed;
+
+        // Back/Select (button 8) or Y (button 3) - Return to title screen
+        const backPressed = gp.buttons[8].pressed || gp.buttons[3].pressed;
+        if (backPressed && !lastBackPress) {
+            if (gameState === 'playing' || gameState === 'gameover') {
+                // Reset everything and go to title screen
+                gameState = 'start';
+                hideGamepadNameEntry();
+                document.getElementById('game-over-screen').style.display = 'none';
+                document.getElementById('start-screen').style.display = 'flex';
+                score = 0;
+                coins_collected = 0;
+                distance = 0;
+                lives = 3;
+            }
+        }
+        lastBackPress = backPressed;
+
+        // Letter grid navigation for name entry
+        if (gamepadNameMode) {
+            const now = Date.now();
+            const totalButtons = LETTERS.length + 2;  // letters + DEL + SUBMIT
+            
+            // Navigate with d-pad or left stick (with delay to prevent too fast movement)
+            const stickX = gp.axes[0];
+            const stickY = gp.axes[1];
+            const dpadLeft = gp.buttons[14] ? gp.buttons[14].pressed : false;
+            const dpadRight = gp.buttons[15] ? gp.buttons[15].pressed : false;
+            const dpadUp = gp.buttons[12] ? gp.buttons[12].pressed : false;
+            const dpadDown = gp.buttons[13] ? gp.buttons[13].pressed : false;
+            
+            const cols = 10;  // 10 letters per row
+            const goLeft = stickX < -0.5 || dpadLeft;
+            const goRight = stickX > 0.5 || dpadRight;
+            const goUp = stickY < -0.5 || dpadUp;
+            const goDown = stickY > 0.5 || dpadDown;
+            
+            if (now - lastLetterNavTime > LETTER_NAV_DELAY) {
+                if (goLeft) {
+                    letterGridCursor = (letterGridCursor - 1 + totalButtons) % totalButtons;
+                    lastLetterNavTime = now;
+                    updateLetterGridSelection();
+                }
+                if (goRight) {
+                    letterGridCursor = (letterGridCursor + 1) % totalButtons;
+                    lastLetterNavTime = now;
+                    updateLetterGridSelection();
+                }
+                if (goUp) {
+                    letterGridCursor = Math.max(0, letterGridCursor - cols);
+                    lastLetterNavTime = now;
+                    updateLetterGridSelection();
+                }
+                if (goDown) {
+                    letterGridCursor = Math.min(totalButtons - 1, letterGridCursor + cols);
+                    lastLetterNavTime = now;
+                    updateLetterGridSelection();
+                }
+            }
+            
+            // A button - select letter/action
+            const aPressed = gp.buttons[0].pressed;
+            if (aPressed && !lastAPress) {
+                if (letterGridCursor < LETTERS.length) {
+                    selectLetter(LETTERS[letterGridCursor]);
+                } else if (letterGridCursor === LETTERS.length) {
+                    deleteLastLetter();
+                } else if (letterGridCursor === LETTERS.length + 1) {
+                    submitGamepadName();
+                }
+            }
+            lastAPress = aPressed;
+            
+            // B button (button 1) - delete
+            const bPressed = gp.buttons[1].pressed;
+            if (bPressed && !lastBPress) {
+                deleteLastLetter();
+            }
+            lastBPress = bPressed;
+        }
     }
 
     // ========================================
@@ -1558,6 +1848,13 @@ html, body {
                 document.getElementById('final-score').textContent = score.toLocaleString();
                 document.getElementById('final-distance').textContent = Math.floor(distance) + 'm';
                 document.getElementById('final-coins').textContent = coins_collected;
+                
+                // Show gamepad name entry if gamepad is connected, otherwise show keyboard input
+                if (gamepadConnected) {
+                    showGamepadNameEntry();
+                } else {
+                    document.getElementById('name-input-section').style.display = 'block';
+                }
             }
         }
 
@@ -2226,7 +2523,7 @@ html, body {
     
     document.getElementById('restart-btn').addEventListener('click', function() {
         document.getElementById('game-over-screen').style.display = 'none';
-        document.getElementById('name-input-section').style.display = 'block';
+        hideGamepadNameEntry();
         document.getElementById('scoreboard-section').style.display = 'none';
         document.getElementById('player-name-input').value = '';
         document.getElementById('submit-status').textContent = '';
