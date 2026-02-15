@@ -53,8 +53,8 @@
         
         #game-container {
             position: relative;
-            width: 1400px; /* Keep your original internal resolution */
-            height: 800px;
+            width: 1600px; /* 2.22:1 aspect ratio for mobile */
+            height: 720px;
             overflow: hidden;
             box-shadow: 0 0 60px rgba(0, 200, 255, 0.3);
             flex-shrink: 0;
@@ -634,7 +634,7 @@ html, body {
 </head>
 <body>
     <div id="game-container">
-        <canvas id="game-canvas" width="1400" height="800"></canvas>
+        <canvas id="game-canvas" width="1600" height="720"></canvas>
         
         <div id="hud">
             <div class="hud-item">
@@ -2397,17 +2397,6 @@ html, body {
     });
     
     resizeCanvas();
-
-       // ========================================
-    // SERVICE WORKER REGISTRATION (PWA)
-    // ========================================
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('SW registered:', reg.scope))
-                .catch(err => console.error('SW failed:', err));
-        });
-    }
 
     console.log('WiFi Router Adventure - ENDLESS MODE loaded!');
     </script>
