@@ -614,13 +614,7 @@
                 height: 75px;
                 font-size: 28px;
             }
-            #btn-dash {
-                right: 105px;
-                bottom: 15px;
-                width: 50px;
-                height: 50px;
-                font-size: 18px;
-            }
+
         }
     
 html, body {
@@ -663,8 +657,11 @@ html, body {
                 <span class="hud-icon">❤️</span>
                 <span id="lives-count">3</span>
             </div>
+            <div class="hud-item" id="gamepad-indicator" style="display: none;">
+                <span class="hud-icon">🎮</span>
+            </div>
         </div>
-        
+
         <div id="difficulty-bar">
             <div id="difficulty-fill"></div>
         </div>
@@ -688,7 +685,8 @@ html, body {
             <button id="start-btn">START GAME</button>
             <div id="controls-info">
                 <strong>Desktop:</strong> ← → or A/D to move | SPACE/W to jump<br>
-                <strong>Mobile:</strong> Use on-screen buttons
+                <strong>Mobile:</strong> Use on-screen buttons<br>
+                <strong>Gamepad:</strong> Left stick/D-pad to move | A/B to jump
             </div>
             <div class="penalty-notice">⚠️ Death penalty: Lose 10% of your score!</div>
             <div class="penalty-notice">⚠️ PS: VIHANE IS NOT ALLOWED TO STEAL THIS CODE FOR HIS OWN PROJECTS!</div>
@@ -922,7 +920,6 @@ html, body {
     const AIR_RESISTANCE = 0.96;
     const PLAYER_SPEED = 3.5;
     const JUMP_FORCE = -13;
-    const DASH_MULTIPLIER = 1.5;
     const TILE_SIZE = 40;
     
     const GENERATION_DISTANCE = 2000;
@@ -958,9 +955,46 @@ html, body {
     // INPUT HANDLING
     // ========================================
     const keys = { left: false, right: false, up: false, down: false, jump: false };
-    let lastLeftPress = 0;
-    let lastRightPress = 0;
-    const DOUBLE_TAP_TIME = 300;
+
+    // ========================================
+    // GAMEPAD SUPPORT
+    // ========================================
+    let gamepadConnected = false;
+    let gamepadIndex = null;
+
+    window.addEventListener('gamepadconnected', (e) => {
+        console.log('🎮 Gamepad connected:', e.gamepad.id);
+        gamepadConnected = true;
+        gamepadIndex = e.gamepad.index;
+        document.getElementById('gamepad-indicator').style.display = 'flex';
+    });
+
+    window.addEventListener('gamepaddisconnected', (e) => {
+        console.log('🎮 Gamepad disconnected');
+        gamepadConnected = false;
+        gamepadIndex = null;
+        document.getElementById('gamepad-indicator').style.display = 'none';
+    });
+
+    function pollGamepad() {
+        if (!gamepadConnected || gamepadIndex === null) return;
+
+        const gamepads = navigator.getGamepads();
+        const gp = gamepads[gamepadIndex];
+        if (!gp) return;
+
+        // Left stick X-axis (axis 0) or D-pad (buttons 14/15 on standard gamepad)
+        const stickX = gp.axes[0];
+        const dpadLeft = gp.buttons[14] ? gp.buttons[14].pressed : false;
+        const dpadRight = gp.buttons[15] ? gp.buttons[15].pressed : false;
+
+        // Movement: stick or d-pad
+        keys.left = stickX < -0.3 || dpadLeft;
+        keys.right = stickX > 0.3 || dpadRight;
+
+        // Jump: A button (button 0) or B button (button 1)
+        keys.jump = gp.buttons[0].pressed || gp.buttons[1].pressed;
+    }
 
     // ========================================
     // GAME OBJECTS
@@ -1374,8 +1408,6 @@ html, body {
             this.vx = 0; this.vy = 0;
             this.grounded = false;
             this.facing = 1;
-            this.dashing = false;
-            this.dashTimer = 0;
             this.invincible = false;
             this.invincibleTimer = 0;
             this.animFrame = 0;
@@ -1405,8 +1437,7 @@ html, body {
             else this.vx *= AIR_RESISTANCE;
             
             // Clamp
-            const maxSpeed = this.dashing ? PLAYER_SPEED * DASH_MULTIPLIER : PLAYER_SPEED;
-            this.vx = clamp(this.vx, -maxSpeed, maxSpeed);
+            this.vx = clamp(this.vx, -PLAYER_SPEED, PLAYER_SPEED);
             
             // Gravity
             this.vy += GRAVITY;
@@ -1499,14 +1530,7 @@ html, body {
             this.animTimer++;
             if (this.animTimer > 8) { this.animTimer = 0; this.animFrame = (this.animFrame + 1) % 4; }
             
-            if (this.dashing) { this.dashTimer--; if (this.dashTimer <= 0) this.dashing = false; }
             if (this.invincible) { this.invincibleTimer--; if (this.invincibleTimer <= 0) this.invincible = false; }
-            
-            // Trail
-            if (Math.abs(this.vx) > 4 && Math.random() > 0.5) {
-                particles.push(new Particle(this.x + this.width / 2, this.y + this.height / 2,
-                    { vx: -this.vx * 0.2, vy: (Math.random() - 0.5) * 2, color: this.dashing ? '#00FFFF' : '#FFFFFF', size: 3, decay: 0.05, gravity: 0 }));
-            }
         }
 
         takeDamage() {
@@ -2140,18 +2164,8 @@ html, body {
     // EVENT LISTENERS - KEYBOARD
     // ========================================
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-            keys.left = true;
-            const now = Date.now();
-            if (now - lastLeftPress < DOUBLE_TAP_TIME && player) { player.dashing = true; player.dashTimer = 15; }
-            lastLeftPress = now;
-        }
-        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-            keys.right = true;
-            const now = Date.now();
-            if (now - lastRightPress < DOUBLE_TAP_TIME && player) { player.dashing = true; player.dashTimer = 15; }
-            lastRightPress = now;
-        }
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
         if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
             keys.jump = true;
             e.preventDefault();
@@ -2289,6 +2303,7 @@ html, body {
     }
 
     function update() {
+        pollGamepad();  // Poll gamepad input every frame
         for (const p of platforms) p.update();
         for (const c of coinsArray) c.update();
         for (const e of enemies) e.update();
@@ -2352,20 +2367,12 @@ html, body {
     }
 
     function drawVFX() {
+        // Vignette effect
         const vig = ctx.createRadialGradient(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_HEIGHT * 0.4, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_HEIGHT * 0.8);
         vig.addColorStop(0, 'rgba(0,0,0,0)');
         vig.addColorStop(1, 'rgba(0,0,0,0.3)');
         ctx.fillStyle = vig;
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        
-        if (player && player.dashing) {
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-            ctx.lineWidth = 2;
-            for (let i = 0; i < 5; i++) {
-                const y = Math.random() * CANVAS_HEIGHT;
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y + (Math.random() - 0.5) * 50); ctx.stroke();
-            }
-        }
     }
 
     function updateHUD() {
